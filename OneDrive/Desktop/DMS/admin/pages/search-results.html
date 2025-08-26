@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - Discipline Management System</title>
+    <link rel="stylesheet" href="profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation Bar -->
+<nav class="navBar">
+    <div class="logo">
+        <img src="/ifak_logo.png" alt="School Logo">
+    </div>
+    <div class="searchStudent">
+        <input type="text" id="searchInput" placeholder="Search by name">
+        <img src="/211817_search_strong_icon.png" id="searchStudentBtn" alt="Search">
+        <div class="suggestions-container"></div>
+    </div>
+    <button class="hamburger" aria-label="Toggle navigation">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+    </button>
+    <div class="links">
+        <ul>
+            <li><a href="profile-page.html">Home</a></li>
+            <li><a href="permission.html">Permission</a></li>
+            <li><a href="about.html">Rules</a></li>
+            <li><a href="reports.html">Reports</a></li>
+            <li><a href="faut-requests.html">Requests</a></li>
+            <li><a href="register-teacher.html">Register-Teacher</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="search-results">
+        <h1>Search Results</h1>
+        
+        <div id="search-results-container">
+            <!-- Results will be populated by JavaScript -->
+        </div>
+        
+        <form id="deduct-marks-form">
+            <h2>Deduct Marks and Log Fault</h2>
+            
+            <div class="form-group">
+                <label for="studentSelect">Select Student:</label>
+                <select id="studentSelect" class="form-control" required>
+                    <option value="">-- Select a student --</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="faultDescription">Fault Description:</label>
+                <textarea id="faultDescription" name="faultDescription" rows="4" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="marksToDeduct">Marks to Deduct:</label>
+                <input type="number" id="marksToDeduct" name="marksToDeduct" min="1" max="10" required>
+            </div>
+            
+            <button type="submit" class="btn-primary">Deduct Marks</button>
+        </form>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer>
+    <p>&copy; 2025 Discipline Management System. All rights reserved.</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="search-results.js"></script>
+</body>
+</html>

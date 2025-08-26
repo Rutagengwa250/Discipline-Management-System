@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Conduct Points</title>
+    <link rel="stylesheet" href="/profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Blue and White Theme */
+        :root {
+            --primary-blue: #1a73e8;
+            --light-blue: #e8f0fe;
+            --dark-blue: #0d47a1;
+            --white: #ffffff;
+            --light-gray: #f5f5f5;
+        }
+        
+        .btn-view {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-view:hover {
+            background-color: var(--dark-blue);
+        }
+        
+        .request-details {
+            background-color: var(--white);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .detail-row {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn-approve {
+            background-color: #2482ca;
+            border: none;
+            color: white;
+        }
+        
+        .btn-reject {
+            background-color: #ea4335;
+            color: white;
+        }
+        
+        .modal-content {
+            background-color: var(--white);
+            border-radius: 8px;
+            max-width: 600px;
+        }
+        
+        table {
+            background-color: var(--white);
+        }
+        
+        tr:hover {
+            background-color: var(--light-blue);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navBar">
+        <div class="logo">
+            <img src="/ifak_logo.png" alt="School Logo">
+        </div>
+        <div class="searchStudent">
+            <input type="text" id="searchInput" placeholder="Search by name">
+            <img src="/211817_search_strong_icon.png" id="searchStudentBtn" alt="Search">
+            <div class="suggestions-container"></div>
+        </div>
+        <button class="hamburger" aria-label="Toggle navigation">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+        <div class="links">
+            <ul>
+                <li><a href="profile-page.html" class="active">Home</a></li>
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="permission.html">Permission</a></li>
+                <li><a href="about.html">Rules</a></li>
+                <li><a href="reports.html">Reports</a></li>
+                <li><a href="faut-requests.html">Requests</a></li>
+                <li><a href="register-teacher.html">Register-Teacher</a></li>
+            </ul>
+        </div>
+        <button id="logoutBtn">Logout</button>
+    </nav> 
+    
+    <main class="main-content">
+        <div class="dashboard">
+            <h1>Conduct Point Removal Requests</h1>
+            
+            <div class="request-filters">
+                <select id="requestStatusFilter" class="blue-select">
+                    <option value="pending">Pending Requests</option>
+                    <option value="all">All Requests</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+            
+            <div class="requests-list">
+                <table id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th>Teacher</th>
+                            <th>Student</th>
+                            <th>Fault</th>
+                            <th>Points</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestsList">
+                        <tr>
+                            <td colspan="7" class="loading">Loading requests...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Request Details Modal -->
+            <div id="requestModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2>Request Details</h2>
+                    <div class="request-details">
+                        <div class="detail-row">
+                            <strong>Teacher:</strong> <span id="detailTeacher"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Student:</strong> <span id="detailStudent"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Class:</strong> <span id="detailClass"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Fault Type:</strong> <span id="detailFaultType"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Description:</strong> <span id="detailDescription"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Points to Remove:</strong> <span id="detailPoints"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Reason for Removal:</strong> <span id="detailReason"></span>
+                        </div>
+                        <div class="detail-row">
+                            <strong>Submitted On:</strong> <span id="detailDate"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" id="decisionSection">
+                        <label for="adminComment">Administrator Comments</label>
+                        <textarea id="adminComment" rows="3" placeholder="Enter your comments here..." class="blue-textarea"></textarea>
+                        
+                        <div class="action-buttons">
+                            <button type="button" class="btn-secondary" id="closeModalBtn">Close</button>
+                            <button type="button" class="btn-approve" id="approveBtn">Approve Request</button>
+                            <button type="button" class="btn-reject" id="rejectBtn">Reject Request</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="fault-request.js"></script>
+</body>
+</html>
