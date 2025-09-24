@@ -1,4 +1,4 @@
-import { createUser, getUserByUsername, selectAllStudents, connection ,storeOTP, getOTPSecret, deleteOTP } from './Admin-form/database.js';
+import { createUser, getUserByUsername, selectAllStudents, connection ,storeOTP, getOTPSecret, deleteOTP } from './admin/Admin-form/database.js';
 import express from 'express';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -7,7 +7,7 @@ import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import pdfmake from 'pdfmake';
 import speakeasy from 'speakeasy';
-import { sendOTPEmail } from './emailService.js';
+import { sendOTPEmail } from './admin/emailService.js';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,6 +17,7 @@ const app = express();
 const SECRET_KEY = process.env.SECRET_KEY || 'resetpassword';
 
 // Serve static files
+app.use(express.static(join(__dirname, 'Admin')));
 app.use(express.static(join(__dirname, 'Admin-form')));
 app.use(express.static(join(__dirname, 'pages')));
 app.use(express.static(join(__dirname, '..', 'files')));
