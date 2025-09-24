@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Conduct Points</title>
+    <link rel="stylesheet" href="/profile.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Additional styles for our simplified form */
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-results {
+            position: absolute;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            z-index: 100;
+            display: none;
+        }
+        .search-result {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .search-result:hover {
+            background-color: #f5f5f5;
+        }
+        .student-info {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            display: none;
+        }
+        .fault-options {
+            margin: 15px 0;
+        }
+        .fault-option {
+            display: block;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navBar">
+        <div class="logo">
+            <img src="/ifak_logo.png" alt="School Logo">
+        </div>
+        <div class="user-menu">
+            <span id="usernameDisplay"></span>
+            <button id="logoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="dashboard">
+            <h1>Conduct Point Removal Requests</h1>
+            
+            <div class="request-actions">
+                <button id="newRequestBtn" class="btn-primary">New Removal Request</button>
+            </div>
+
+            <!-- Request Form Modal -->
+            <div id="requestModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2>Submit New Removal Request</h2>
+                    <form id="removalRequestForm">
+                        <div class="search-container">
+                            <label for="studentSearch">Search Student *</label>
+                            <input type="text" id="studentSearch" placeholder="Start typing student name..." required>
+                            <div class="search-results" id="studentSearchResults"></div>
+                            <input type="hidden" id="selectedStudentId">
+                        </div>
+                        
+                        <div class="student-info" id="studentInfoContainer">
+                            <h3>Student Information</h3>
+                            <div class="info-grid">
+                                <div><strong>Name:</strong> <span id="studentName"></span></div>
+                                <div><strong>Class:</strong> <span id="studentClass"></span></div>
+                                <div><strong>Current Points:</strong> <span id="studentPoints"></span></div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Select Fault Type *</label>
+                            <div class="fault-options">
+                                <label class="fault-option">
+                                    <input type="radio" name="faultType" value="late" data-points="2" required> 
+                                    Late to Class (-2 points)
+                                </label>
+                                <label class="fault-option">
+                                    <input type="radio" name="faultType" value="uniform" data-points="3"> 
+                                    Uniform Violation (-3 points)
+                                </label>
+                                <label class="fault-option">
+                                    <input type="radio" name="faultType" value="disruption" data-points="4"> 
+                                    Class Disruption (-4 points)
+                                </label>
+                                <label class="fault-option">
+                                    <input type="radio" name="faultType" value="homework" data-points="2"> 
+                                    Missing Homework (-2 points)
+                                </label>
+                              
+                            </div>
+                        </div>
+
+                        <!-- Only show points input for "Other" fault type -->
+                        <div class="form-group" id="customPointsContainer" style="display: none;">
+                            <label for="customPoints">Custom Points to Remove *</label>
+                            <input type="number" id="customPoints" name="customPoints" min="1">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="faultDescription">Fault Description *</label>
+                            <textarea id="faultDescription" rows="3" required></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="removalReason">Reason for Removal *</label>
+                            <textarea id="removalReason" rows="3" placeholder="Explain why this fault should be removed..." required></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" id="cancelRequestBtn">Cancel</button>
+                            <button type="submit" class="btn-primary">Submit Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Requests List -->
+            <div id="requestsContainer" class="data-container">
+                <h2>My Requests</h2>
+                <div class="request-filters">
+                    <select id="requestStatusFilter">
+                        <option value="all">All Requests</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+                
+                <div class="requests-list">
+                    <table id="requestsTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Fault</th>
+                                <th>Points</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestsList">
+                            <tr>
+                                <td colspan="6" class="loading">Loading requests...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="teacher-dashboard.js"></script>
+</body>
+</html>

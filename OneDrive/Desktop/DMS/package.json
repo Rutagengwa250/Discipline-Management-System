@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "git": "^0.1.5",
+    "jsonwebtoken": "^9.0.2",
+    "mysql": "^2.18.1",
+    "mysql2": "^2.3.3",
+    "nodemailer": "^7.0.3",
+    "nodemailer-express-handlebars": "^7.0.0",
+    "nodemon": "^3.1.9",
+    "pdfmake": "^0.2.7",
+    "speakeasy": "^2.0.0"
+  },
+  "type": "module"
+}
