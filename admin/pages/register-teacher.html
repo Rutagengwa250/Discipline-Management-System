@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Teacher</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+              --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--dark);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+.navBar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .container {
+            max-width: 100%;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            font-size: 2rem;
+            color: white;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+        }
+        
+        .logo img {
+            height: 40px;
+        }
+        
+        
+        .searchStudent {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin: 0 20px;
+        }
+        
+        .searchStudent input {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            width: 300px;
+            outline: none;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .searchStudent input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .searchStudent input:focus {
+            border-color: white;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .searchStudent img {
+            height: 20px;
+            margin-left: -35px;
+            cursor: pointer;
+            filter: brightness(0) invert(1);
+        }
+        
+        .suggestions-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 101;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .suggestion-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            color: var(--dark);
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f5f7fb;
+        }
+           .nav-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .links {
+            display: flex;
+            gap: 20px;
+            flex-direction: row; /* ensures horizontal layout */
+        }
+
+           .links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* spacing between icon and text */
+        }
+
+
+        .links a:hover, .links a.active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .user-info img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 200px;
+            z-index: 100;
+            display: none;
+        }
+
+        .user-dropdown a {
+            display: block;
+            padding: 12px 15px;
+            color: var(--dark);
+            text-decoration: none;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .user-dropdown a:hover {
+            background-color: var(--light);
+        }
+
+        .user-dropdown a:last-child {
+            border-bottom: none;
+        }
+
+        .user-info:hover .user-dropdown {
+            display: block;
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 21px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .hamburger span {
+            height: 3px;
+            width: 100%;
+            background-color: white;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .form-container {
+            background-color: var(--light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .form-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            color: var(--dark);
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 2.35rem;
+            color: var(--gray);
+        }
+
+        .btn-primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background-color: var(--primary);
+            color: var(--light);
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 0.75rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            width: 100%;
+            font-size: 1rem;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        #message {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            display: none;
+            font-weight: 500;
+        }
+
+        .error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border-left: 4px solid var(--danger);
+        }
+
+        .success {
+            background-color: #d1fae5;
+            color: #059669;
+            border-left: 4px solid var(--success);
+        }
+
+        .message-icon {
+            font-size: 1.25rem;
+        }    /* Responsive Design */
+        @media (max-width: 1024px) {
+            .navBar .container {
+                padding: 0 20px;
+            }
+            
+            .searchStudent input {
+                width: 250px;
+            }
+            
+            .links {
+                gap: 15px;
+            }
+            
+       
+        }
+        
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+            
+            .links {
+                position: fixed;
+                top: 70px;
+                right: -100%;
+                background-color: var(--secondary);
+                width: 250px;
+                height: calc(100vh - 70px);
+                flex-direction: column;
+                padding: 20px;
+                transition: right 0.3s;
+                z-index: 100;
+            }
+            
+            .links.active {
+                right: 0;
+            }
+            
+            .links a {
+                display: block;
+                padding: 15px;
+                border-radius: 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .searchStudent {
+                width: 100%;
+                margin: 0 15px;
+            }
+            
+            .searchStudent input {
+                width: 100%;
+            }
+            
+      
+        }
+        
+        /* NEW RESPONSIVE STYLES FOR MOBILE AND TABLET */
+        /* Tablet (768px and below) */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+                flex-wrap: wrap;
+            }
+            
+            .logo h1 {
+                font-size: 1.5rem;
+            }
+            
+            .logo i {
+                font-size: 1.7rem;
+            }
+            
+            .nav-container {
+                order: 3;
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .user-info span {
+                display: none;
+            }
+            
+    
+            
+      
+        }
+        
+        /* Mobile (480px and below) */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .logo h1 {
+                font-size: 1.3rem;
+            }
+            
+            .logo i {
+                font-size: 1.5rem;
+            }
+
+            .notification {
+                min-width: 250px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+            }
+            
+            .notification-content {
+                padding: 10px 15px;
+            }
+            
+            .user-dropdown {
+                width: 180px;
+            }
+            
+            /* Hide DMS name and username on mobile */
+            .logo h1, .user-info span {
+                display: none;
+            }
+            
+            /* Ensure logo, search and menu are on the same line */
+            .container {
+                justify-content: space-between;
+            }
+            
+            .searchStudent {
+                flex: 1;
+                margin: 0 10px;
+            }
+        }
+        
+        
+       
+        
+        @media (max-width: 360px) {
+            .logo h1 {
+                font-size: 1.1rem;
+            }
+            
+            .logo i {
+                font-size: 1.3rem;
+            }
+        }
+  
+    </style>
+</head>
+<body>
+    <nav class="navBar">
+        <div class="container">
+            <!-- Logo -->
+            <div class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <h1>DMS</h1>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="searchStudent">
+                <input type="text" id="searchInput" placeholder="Search by name">
+                <img src="/211817_search_strong_icon.png" id="searchStudentBtn" alt="Search">
+                <div class="suggestions-container"></div>
+            </div>
+
+            <!-- Navigation & User Info -->
+            <div class="nav-container">
+                <nav class="links">
+                    <a href="profile-page.html"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="permission.html"><i class="fas fa-clipboard-check"></i> Permission</a>
+                    <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <a href="faut-requests.html" class="active"><i class="fas fa-tasks"></i> Requests</a>
+                    <a href="register-teacher.html"><i class="fas fa-user-plus"></i> Register Teacher</a>
+                </nav>
+
+                <div class="user-info">
+                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" alt="User">
+                    <div class="user-dropdown">
+                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+
+                <button class="hamburger" aria-label="Toggle navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="form-container">
+            <div class="form-header">
+                <i class="fas fa-user-plus fa-xl" style="color: var(--primary);"></i>
+                <h1>Register New Teacher</h1>
+            </div>
+            <form id="registerTeacherForm">
+                <div class="form-group">
+                    <label for="username">
+                        <i class="fas fa-user"></i>
+                        Username
+                    </label>
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" id="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">
+                        <i class="fas fa-lock"></i>
+                        Password
+                    </label>
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" id="password" class="form-control" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">
+                        <i class="fas fa-lock"></i>
+                        Confirm Password
+                    </label>
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" id="confirmPassword" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-user-plus"></i>
+                    Register Teacher
+                </button>
+            </form>
+            <div id="message">
+                <i class="fas fa-check-circle message-icon"></i>
+                <span class="message-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+          // Toggle mobile menu
+    
+        const hamburger = document.querySelector('.hamburger');
+        const links = document.querySelector('.links');
+        
+        hamburger.addEventListener('click', function() {
+            links.classList.toggle('active');
+            hamburger.classList.toggle('active');
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const isClickInsideNav = event.target.closest('.nav-container');
+            const isClickInsideHamburger = event.target.closest('.hamburger');
+            
+            if (!isClickInsideNav && !isClickInsideHamburger && links.classList.contains('active')) {
+                links.classList.remove('active');
+                hamburger.classList.remove('active');
+            }
+        });
+        
+        // Close menu when clicking on a link
+        const navLinks = document.querySelectorAll('.links a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                links.classList.remove('active');
+                hamburger.classList.remove('active');
+            });
+        });
+        document.getElementById('registerTeacherForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (password !== confirmPassword) {
+                showMessage("Passwords don't match", 'error');
+                return;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await axios.post('/register-teacher', {
+                    username,
+                    password
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                showMessage(response.data.message, 'success');
+                document.getElementById('registerTeacherForm').reset();
+            } catch (error) {
+                if (error.response) {
+                    showMessage(error.response.data.error, 'error');
+                } else {
+                    showMessage('Registration failed', 'error');
+                }
+            }
+        });
+        function initSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchStudentBtn');
+    const suggestionsContainer = document.querySelector('.suggestions-container');
+    
+    searchInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`http://localhost:5000/students/search?q=${query}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            displaySuggestions(response.data);
+        } catch (error) {
+            console.error('Error fetching search suggestions:', error);
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    searchBtn.addEventListener('click', async function() {
+        const query = searchInput.value.trim();
+        if (!query) {
+            alert('Please enter a student name');
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`http://localhost:5000/student/${encodeURIComponent(query)}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            localStorage.setItem('searchResults', JSON.stringify(response.data));
+            window.location.href = 'search-results.html';
+        } catch (error) {
+            console.error('Error searching for student:', error);
+            if (error.response?.status === 404) {
+                alert('Student not found. Please check the name and try again.');
+            } else {
+                handleApiError(error);
+            }
+        }
+    });
+    
+    function displaySuggestions(suggestions) {
+        suggestionsContainer.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        suggestions.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            
+            // Create HTML structure with name and class
+            div.innerHTML = `
+                <div class="suggestion-name">${student.student_firstName} ${student.student_lastName}</div>
+                <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+            `;
+            
+            div.addEventListener('click', () => {
+                searchInput.value = `${student.student_firstName} ${student.student_lastName}`;
+                suggestionsContainer.style.display = 'none';
+                searchInput.focus();
+            });
+            suggestionsContainer.appendChild(div);
+        });
+        
+        suggestionsContainer.style.display = 'block';
+    }
+}
+        initSearch();
+        function showMessage(text, type) {
+            const message = document.getElementById('message');
+            const messageIcon = message.querySelector('.message-icon');
+            const messageText = message.querySelector('.message-text');
+            
+            messageText.textContent = text;
+            message.className = type;
+            message.style.display = 'flex';
+            
+            // Update icon based on message type
+            if (type === 'success') {
+                messageIcon.className = 'fas fa-check-circle message-icon';
+            } else {
+                messageIcon.className = 'fas fa-exclamation-circle message-icon';
+            }
+            
+            // Auto-hide message after 5 seconds
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

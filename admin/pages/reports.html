@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generate Reports - Discipline Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --border: #dee2e6;
+            --bg-light: #f8f9fa;
+            --radius: 8px;
+            --radius-sm: 4px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fb;
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        /* Navigation Styles - UPDATED TO MATCH PERMISSION PAGE */
+        .navBar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .container {
+            max-width: 100%;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            font-size: 2rem;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+        }
+        
+        .logo img {
+            height: 40px;
+        }
+        
+        
+        .searchStudent {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin: 0 20px;
+
+        }
+        
+        .searchStudent input {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            width: 300px;
+            outline: none;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .searchStudent input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .searchStudent input:focus {
+            border-color: white;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .searchStudent img {
+            height: 20px;
+            margin-left: -35px;
+            cursor: pointer;
+            filter: brightness(0) invert(1);
+        }
+        
+        .suggestions-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 101;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .suggestion-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            color: var(--dark);
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f5f7fb;
+        }
+        .nav-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .links {
+            display: flex;
+            gap: 20px;
+            flex-direction: row; /* ensures horizontal layout */
+        }
+
+        .links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px; /* spacing between icon and text */
+        }
+
+
+        .links a:hover, .links a.active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .user-info img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 200px;
+            z-index: 100;
+            display: none;
+        }
+
+        .user-dropdown a {
+            display: block;
+            padding: 12px 15px;
+            color: var(--dark);
+            text-decoration: none;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .user-dropdown a:hover {
+            background-color: var(--light);
+        }
+
+        .user-dropdown a:last-child {
+            border-bottom: none;
+        }
+
+        .user-info:hover .user-dropdown {
+            display: block;
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 21px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .hamburger span {
+            height: 3px;
+            width: 100%;
+            background-color: white;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+
+        /* Main Content */
+        .main-content {
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            flex: 1;
+            width: 100%;
+        }
+        
+        .reports-container h1 {
+            font-size: 28px;
+            margin-bottom: 25px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+                
+        /* Reports */
+        .report-options, .report-filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .report-filters {
+            display: none;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--dark);
+            font-weight: 500;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+        }
+
+        #report-display {
+            background-color: var(--bg-light);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            overflow-x: auto;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .report-header h2 {
+            color: var(--dark);
+            font-size: 1.5rem;
+        }
+
+        .report-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        #report-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #report-table th,
+        #report-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        #report-table th {
+            background-color: var(--primary);
+            color: var(--light);
+            font-weight: 600;
+        }
+
+        #report-table tr:hover {
+            background-color: rgba(241, 245, 249, 0.5);
+        }
+        
+        /* Button Styles */
+        .btn-primary, .btn-secondary {
+            padding: 10px 16px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary);
+        }
+        
+        .btn-secondary {
+            background-color: var(--light-gray);
+            color: var(--dark);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+        
+        /* Loading Spinner */
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: var(--gray);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Report Actions */
+        .report-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Footer Styles */
+        footer {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 30px 0 20px;
+            margin-top: auto;
+        }
+        
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+        
+        .footer-section {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .footer-section h3 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        .footer-section h3::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background-color: white;
+        }
+        
+        .footer-section p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-links a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .footer-social {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .footer-social a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .footer-social a:hover {
+            background-color: white;
+            color: var(--primary);
+            transform: translateY(-3px);
+        }
+        
+        .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer-bottom p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive Styles */
+        /* Tablet (768px and below) */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 20px;
+            }
+            
+            .searchStudent input {
+                width: 200px;
+            }
+            
+            .nav-container {
+                gap: 15px;
+            }
+            
+            .links {
+                position: fixed;
+                top: 70px;
+                left: 0;
+                background: linear-gradient(135deg, var(--primary), var(--secondary));
+                width: 100%;
+                flex-direction: column;
+                padding: 20px;
+                gap: 15px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                transform: translateY(-100%);
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+                z-index: 99;
+            }
+            
+            .links.active {
+                transform: translateY(0);
+                opacity: 1;
+                visibility: visible;
+            }
+            
+            .hamburger {
+                display: flex;
+            }
+            
+            .hamburger.active span:nth-child(1) {
+                transform: translateY(9px) rotate(45deg);
+            }
+            
+            .hamburger.active span:nth-child(2) {
+                opacity: 0;
+            }
+            
+            .hamburger.active span:nth-child(3) {
+                transform: translateY(-9px) rotate(-45deg);
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .report-options, .report-filters {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .filter-group {
+                min-width: 100%;
+            }
+            
+            .report-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .report-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .report-actions button {
+                flex: 1;
+                justify-content: center;
+            }
+            
+            #report-table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            #report-table th, 
+            #report-table td {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .user-info span {
+                display: none;
+            }
+            
+            .footer-container {
+                grid-template-columns: 1fr;
+                padding: 0 20px;
+                gap: 25px;
+            }
+            
+            .footer-section h3::after {
+                width: 30px;
+            }
+        }
+        
+        /* Mobile (480px and below) */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 15px;
+            }
+            
+            .logo h1 {
+                font-size: 1.3rem;
+            }
+            
+            .logo img {
+                height: 35px;
+            }
+            
+            .searchStudent {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 15px;
+            }
+            
+            .reports-container h1 {
+                font-size: 24px;
+            }
+            
+            .btn-primary, .btn-secondary {
+                padding: 8px 12px;
+                font-size: 14px;
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .report-options button {
+                width: 100%;
+            }
+            
+            #report-table th, 
+            #report-table td {
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            /* Hide logo text on very small screens */
+            .logo h1 {
+                display: none;
+            }
+            
+            .user-info {
+                margin-left: auto;
+            }
+            
+            .report-summary {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .filter-group input,
+            .filter-group select {
+                padding: 0.6rem;
+            }
+            
+            footer {
+                padding: 25px 0 15px;
+            }
+            
+            .footer-container {
+                padding: 0 15px;
+                gap: 20px;
+            }
+            
+            .footer-section h3 {
+                font-size: 1.1rem;
+            }
+            
+            .footer-social {
+                justify-content: center;
+            }
+        }
+        
+        /* Small Mobile (360px and below) */
+        @media (max-width: 360px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .logo i {
+                font-size: 1.5rem;
+            }
+            
+            .main-content {
+                padding: 10px;
+            }
+            
+            .reports-container h1 {
+                font-size: 22px;
+            }
+            
+            #report-table {
+                font-size: 12px;
+            }
+            
+            #report-table th, 
+            #report-table td {
+                padding: 6px 4px;
+            }
+            
+            .footer-container {
+                padding: 0 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<nav class="navBar">
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo">
+            <i class="fas fa-graduation-cap"></i>
+            <h1>DMS</h1>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="searchStudent">
+            <input type="text" id="searchInput" placeholder="Search by name">
+            <img src="/211817_search_strong_icon.png" id="searchStudentBtn" alt="Search">
+            <div class="suggestions-container"></div>
+        </div>
+
+        <!-- Navigation & User Info -->
+        <div class="nav-container">
+            <nav class="links">
+                <a href="profile-page.html" class="active"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="permission.html"><i class="fas fa-clipboard-check"></i> Permission</a>
+                <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
+                <a href="faut-requests.html"><i class="fas fa-tasks"></i> Requests</a>
+                <a href="register-teacher.html"><i class="fas fa-user-plus"></i> Register Teacher</a>
+            </nav>
+
+            <div class="user-info">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" alt="User">
+                <div class="user-dropdown">
+                    <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+
+            <button class="hamburger" aria-label="Toggle navigation">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="reports-container">
+            <h1>Generate Reports</h1>
+            
+            <div class="report-options">
+                <button id="dailyReportBtn" class="btn-primary">
+                    <i class="fas fa-calendar-day"></i> Daily Report
+                </button>
+                <button id="weeklyReportBtn" class="btn-primary">
+                    <i class="fas fa-calendar-week"></i> Weekly Report
+                </button>
+                <button id="monthlyReportBtn" class="btn-primary">
+                    <i class="fas fa-calendar-alt"></i> Monthly Report
+                </button>
+                <button id="customReportBtn" class="btn-secondary">
+                    <i class="fas fa-cog"></i> Custom Report
+                </button>
+            </div>
+            
+            <div class="report-filters">
+                <div class="filter-group">
+                    <label for="startDate">From:</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="filter-group">
+                    <label for="endDate">To:</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="filter-group">
+                    <label for="classFilter">Class:</label>
+                    <select id="classFilter">
+                        <option value="">All Classes</option>
+                        <option value="S1">Senior 1</option>
+                        <option value="S2">Senior 2</option>
+                        <option value="S3">Senior 3</option>
+                        <option value="S4 MPC">Senior 4 MPC</option>
+                        <option value="S4 MCB">Senior 4 MCB</option>
+                        <option value="S4 PCM">Senior 4 PCM</option>
+                        <option value="S4 PCB">Senior 4 PCB</option>
+                        <option value="S4 MCE">Senior 4 MCE</option>
+                        <option value="S5 MPC">Senior 5 MPC</option>
+                        <option value="S5 MCB">Senior 5 MCB</option>
+                        <option value="S5 PCM">Senior 5 PCM</option>
+                        <option value="S5 PCB">Senior 5 PCB</option>
+                        <option value="S5 MCE">Senior 5 MCE</option>
+                        <option value="S6 MPC">Senior 6 MPC</option>
+                        <option value="S6 MCB">Senior 6 MCB</option>
+                        <option value="S6 PCM">Senior 6 PCM</option>
+                        <option value="S6 PCB">Senior 6 PCB</option>
+                        <option value="S6 MCE">Senior 6 MCE</option>
+                    </select>
+                </div>
+                <button id="applyFiltersBtn" class="btn-primary">
+                    Apply Filters
+                </button>
+            </div>
+            <div id="loading-spinner" style="display: none;"></div>
+            <div id="report-display">
+                <div class="loading-spinner" id="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Select a report type to generate</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-section">
+                <h3>About DMS</h3>
+                <p>The Discipline Management System helps educational institutions maintain discipline records, track student behavior, and generate comprehensive reports.</p>
+                <div class="footer-social">
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                </div>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="profile-page.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="permission.html"><i class="fas fa-clipboard-check"></i> Permission</a></li>
+                    <li><a href="about.html"><i class="fas fa-book"></i> Rules</a></li>
+                    <li><a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <p><i class="fas fa-map-marker-alt"></i> 123 Kanombe, Kigali, Rwanda</p>
+                <p><i class="fas fa-phone"></i> +250790801664</p>
+                <p><i class="fas fa-envelope"></i> DMS@gmail.com</p>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p>&copy; 2025 Discipline Management System. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // Set up event delegation once
+        document.body.addEventListener('click', function(e) {
+            if (e.target.closest('#exportPdfBtn')) {
+                downloadReport('pdf');
+            }
+            if (e.target.closest('#exportExcelBtn')) {
+                downloadReport('excel');
+            }
+            if (e.target.closest('#refreshReportBtn')) {
+                if (currentReportType) {
+                    generateReport(currentReportType);
+                }
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize hamburger menu
+            const hamburger = document.querySelector('.hamburger');
+            const navLinks = document.querySelector('.links');
+            
+            hamburger.addEventListener('click', function() {
+                this.classList.toggle('active');
+                navLinks.classList.toggle('active');
+            });
+
+            // Check authentication
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Create loading spinner if it doesn't exist
+            if (!document.getElementById('loading-spinner')) {
+                document.body.insertAdjacentHTML('beforeend', 
+                    '<div id="loading-spinner" style="display: none;"></div>');
+            }
+
+            // Initialize report display
+            const reportDisplay = document.getElementById('report-display');
+            if (reportDisplay) {
+                reportDisplay.innerHTML = `
+                    <div class="report-header">
+                        <!-- ... existing header HTML ... -->
+                    </div>
+                    <div class="report-summary"></div>
+                    <table id="report-table">
+                        <!-- ... existing table HTML ... -->
+                    </table>
+                `;
+            }
+
+            // Initialize search functionality
+            initSearch();
+
+            // Initialize report buttons
+            initReportButtons();
+            
+        });
+
+
+        function initReportButtons() {
+            const dailyBtn = document.getElementById('dailyReportBtn');
+            const weeklyBtn = document.getElementById('weeklyReportBtn');
+            const monthlyBtn = document.getElementById('monthlyReportBtn');
+            const customBtn = document.getElementById('customReportBtn');
+            const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+            const reportFilters = document.querySelector('.report-filters');
+            
+            // Set default dates
+            const today = new Date();
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            
+            // Format date as YYYY-MM-DD
+            function formatDate(date) {
+                const d = new Date(date);
+                const month = '' + (d.getMonth() + 1);
+                const day = '' + d.getDate();
+                const year = d.getFullYear();
+                
+                return [year, month.padStart(2, '0'), day.padStart(2, '0')].join('-');
+            }
+            
+            startDate.value = formatDate(new Date(today.getFullYear(), today.getMonth(), 1));
+            endDate.value = formatDate(today);
+            
+            // Button event handlers
+            dailyBtn.addEventListener('click', () => generateReport('daily'));
+            weeklyBtn.addEventListener('click', () => generateReport('weekly'));
+            monthlyBtn.addEventListener('click', () => generateReport('monthly'));
+            
+            customBtn.addEventListener('click', function() {
+                reportFilters.style.display = reportFilters.style.display === 'flex' ? 'none' : 'flex';
+            });
+            
+            applyFiltersBtn.addEventListener('click', () => generateReport('custom'));
+        }
+
+        let currentReportType = null;
+        let currentReportParams = null;
+        let currentApiUrl = null;
+
+        async function generateReport(type) {
+            // Safely get elements
+            const spinner = document.getElementById('loading-spinner');
+            const reportDisplay = document.getElementById('report-display');
+            
+            // Check if elements exist
+            if (!spinner || !reportDisplay) {
+                console.error('Required elements not found in DOM');
+                return;
+            }
+
+            try {
+                // Show loading state
+                spinner.innerHTML = '<div class="spinner"></div><p>Generating report...</p>';
+                spinner.style.display = 'flex';
+                
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+                
+                currentApiUrl = `http://localhost:5000/reports/${type}`;
+                currentReportParams = {};
+                currentReportType = type;
+                
+                // For custom reports, use the filter values
+                if (type === 'custom') {
+                    const startDate = document.getElementById('startDate')?.value;
+                    const endDate = document.getElementById('endDate')?.value;
+                    const classFilter = document.getElementById('classFilter')?.value;
+                    
+                    if (!startDate || !endDate) {
+                        throw new Error('Please select both start and end dates');
+                    }
+                    
+                    currentReportParams.startDate = startDate;
+                    currentReportParams.endDate = endDate;
+                    if (classFilter) currentReportParams.class = classFilter;
+                } 
+                // ... rest of your existing parameter handling ...
+                
+                // Fetch report data
+                const response = await axios.get(currentApiUrl, {
+                    params: currentReportParams,
+                    headers: { 
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.data) {
+                    throw new Error('No data received from server');
+                }
+                
+                // Display the report data
+                displayReportData(response.data);
+                
+            } catch (error) {
+                console.error('Error generating report:', error);
+                
+                if (spinner) {
+                    spinner.innerHTML = `
+                        <div class="error-icon">⚠️</div>
+                        <p>${error.message || 'Failed to generate report'}</p>
+                    `;
+                }
+                
+                if (error.response?.status === 401) {
+                    handleApiError(error);
+                }
+            } finally {
+                // Hide spinner after a delay
+                setTimeout(() => {
+                    if (spinner) {
+                        spinner.style.display = 'none';
+                    }
+                }, 500);
+            }
+        }
+
+        // Helper function to format dates as YYYY-MM-DD
+        function formatDate(date) {
+            const d = new Date(date);
+            const month = '' + (d.getMonth() + 1);
+            const day = '' + d.getDate();
+            const year = d.getFullYear();
+            
+            return [year, month.padStart(2, '0'), day.padStart(2, '0')].join('-');
+        }
+
+        function displayReportData(data) {
+            const reportDisplay = document.getElementById('report-display');
+
+            // Group cases by student
+            const grouped = {};
+            if (data.cases && data.cases.length > 0) {
+                data.cases.forEach(caseItem => {
+                    const studentId = caseItem.student_id || 'N/A';
+                    if (!grouped[studentId]) {
+                        grouped[studentId] = {
+                            student_id: studentId,
+                            student_firstName: caseItem.student_firstName || '',
+                            student_lastName: caseItem.student_lastName || '',
+                            student_class: caseItem.student_class || 'N/A',
+                            faults: [],
+                            totalPoints: 0,
+                            dates: []
+                        };
+                    }
+                    grouped[studentId].faults.push(caseItem.fault_description || 'N/A');
+                    grouped[studentId].totalPoints += caseItem.points_deducted || 0;
+                    if (caseItem.created_at) grouped[studentId].dates.push(new Date(caseItem.created_at).toLocaleDateString());
+                });
+            }
+
+            // Create table rows (one per student)
+            let tableRows = '';
+            const groupedArr = Object.values(grouped);
+            if (groupedArr.length > 0) {
+                groupedArr.forEach(student => {
+                    tableRows += `
+                        <tr>
+                            <td>${student.student_id}</td>
+                            <td>${student.student_firstName} ${student.student_lastName}</td>
+                            <td>${student.student_class}</td>
+                            <td>${student.faults.join(', ')}</td>
+                            <td>${student.totalPoints}</td>
+                            <td>${student.dates.join(', ')}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tableRows = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                                <i class="fas fa-info-circle" style="font-size: 2rem; color: var(--gray);"></i>
+                                <p>No cases found for the selected period</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Update only the changing parts
+            const reportHeader = reportDisplay.querySelector('.report-header') || document.createElement('div');
+            reportHeader.className = 'report-header';
+            reportHeader.innerHTML = `
+                <h2>Disciplinary Report</h2>
+                <div class="report-actions">
+                    <button id="exportPdfBtn" class="btn-primary">
+                        <i class="fas fa-file-pdf"></i> Download PDF
+                    </button>
+                    <button id="exportExcelBtn" class="btn-secondary">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                    <button id="refreshReportBtn" class="btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            `;
+            
+            const reportTable = reportDisplay.querySelector('#report-table') || document.createElement('table');
+            reportTable.id = 'report-table';
+            reportTable.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Class</th>
+                        <th>Fault Description</th>
+                        <th>Points Deducted</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            `;
+            
+            // Only replace what's necessary
+            if (!reportDisplay.querySelector('.report-header')) {
+                reportDisplay.innerHTML = '';
+                reportDisplay.appendChild(reportHeader);
+                reportDisplay.appendChild(reportTable);
+            } else {
+                reportDisplay.querySelector('.report-header').outerHTML = reportHeader.outerHTML;
+                reportDisplay.querySelector('#report-table').outerHTML = reportTable.outerHTML;
+            }
+            
+            // Use event delegation for dynamic buttons
+            document.body.addEventListener('click', function(e) {
+                if (e.target.closest('#exportPdfBtn')) {
+                    downloadReport('pdf');
+                }
+                if (e.target.closest('#exportExcelBtn')) {
+                    downloadReport('excel');
+                }
+                if (e.target.closest('#refreshReportBtn')) {
+                    if (currentReportType) {
+                        generateReport(currentReportType);
+                    }
+                }
+            });
+        }
+
+        async function downloadReport(format) {
+            if (!currentApiUrl || !currentReportType) {
+                alert('Please generate a report first');
+                return;
+            }
+
+            try {
+                const spinner = document.createElement('div');
+                spinner.className = 'download-spinner';
+                spinner.innerHTML = `
+                    <div class="spinner"></div>
+                    <p>Generating ${format.toUpperCase()}...</p>
+                `;
+                document.body.appendChild(spinner);
+                
+                const token = localStorage.getItem('token');
+                
+                // Ensure we include all current parameters
+                const downloadParams = { ...currentReportParams };
+                
+                const response = await axios.get(`${currentApiUrl}/${format}`, {
+                    params: downloadParams,
+                    responseType: 'blob',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.setAttribute('download', `${currentReportType}_report.${format}`);
+                document.body.appendChild(link);
+                link.click();
+                
+                // Cleanup
+                setTimeout(() => {
+                    link.parentNode.removeChild(link);
+                    window.URL.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(spinner);
+                }, 100);
+                
+            } catch (error) {
+                console.error(`Error generating ${format}:`, error);
+                
+                // More detailed error message
+                let errorMessage = `Failed to generate ${format}.`;
+                if (error.response) {
+                    if (error.response.status === 400) {
+                        errorMessage += " Invalid request parameters.";
+                    } else if (error.response.data?.error) {
+                        errorMessage += ` Server error: ${error.response.data.error}`;
+                    }
+                }
+                
+                alert(errorMessage);
+                document.querySelector('.download-spinner')?.remove();
+            }
+        }
+        
+        function initSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchStudentBtn');
+            const suggestionsContainer = document.querySelector('.suggestions-container');
+            
+            searchInput.addEventListener('input', async function() {
+                const query = this.value.trim();
+                if (query.length < 2) {
+                    suggestionsContainer.style.display = 'none';
+                    return;
+                }
+                
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await axios.get(`http://localhost:5000/students/search?q=${query}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    displaySuggestions(response.data);
+                } catch (error) {
+                    console.error('Error fetching search suggestions:', error);
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+            
+            searchBtn.addEventListener('click', async function() {
+                const query = searchInput.value.trim();
+                if (!query) {
+                    alert('Please enter a student name');
+                    return;
+                }
+                
+                try {
+                    const token = localStorage.getItem('token');
+                    const response = await axios.get(`http://localhost:5000/student/${encodeURIComponent(query)}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    localStorage.setItem('searchResults', JSON.stringify(response.data));
+                    window.location.href = 'search-results.html';
+                } catch (error) {
+                    console.error('Error searching for student:', error);
+                    if (error.response?.status === 404) {
+                        alert('Student not found. Please check the name and try again.');
+                    } else {
+                        handleApiError(error);
+                    }
+                }
+            });
+            
+            function displaySuggestions(suggestions) {
+                suggestionsContainer.innerHTML = '';
+                
+                if (suggestions.length === 0) {
+                    suggestionsContainer.style.display = 'none';
+                    return;
+                }
+                
+                suggestions.forEach(student => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    
+                    // Create HTML structure with name and class
+                    div.innerHTML = `
+                        <div class="suggestion-name">${student.student_firstName} ${student.student_lastName}</div>
+                        <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                    `;
+                    
+                    div.addEventListener('click', () => {
+                        searchInput.value = `${student.student_firstName} ${student.student_lastName}`;
+                        suggestionsContainer.style.display = 'none';
+                        searchInput.focus();
+                    });
+                    suggestionsContainer.appendChild(div);
+                });
+                
+                suggestionsContainer.style.display = 'block';
+            }
+        }
+
+        function handleApiError(error) {
+            if (error.response?.status === 401) {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            } else {
+                alert('An error occurred. Please try again.');
+            }
+        }
+    </script>
+</body>
+</html>

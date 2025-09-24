@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Sign-Up Form</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">  
+            <form class="signUp">
+                <h2>Sign Up</h2>
+                <div class="input-group">
+                    <label for="name">School Name:</label>
+                    <input type="text" id="admin-username" placeholder="IFAK" required>
+                </div>
+                <div class="input-group">
+                    <label for="std Id">Password:</label>
+                    <input type="password" id="password" placeholder=" " required>
+                </div>
+                <button type="submit" class="btn">Sign Up</button>
+                <p class="switch-form" id="switch-to-signup">Have an account? <a href="login.html">Login In</a></p>
+                <p id="message"></p>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+
+    <script src="signup.js"></script>
+
+</body>
+</html>

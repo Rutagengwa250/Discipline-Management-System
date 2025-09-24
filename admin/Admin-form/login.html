@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | School Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div id="login-form" class="form-box">
+            <div class="logo">
+                <i class="fas fa-user-graduate"></i>
+                <h2>School Portal</h2>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" placeholder="Enter your username" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" placeholder="Enter your password" required>
+                    </div>
+                </div>
+                <button type="submit" id="loginBtn">
+                    <span id="btnText">Login</span>
+                    <div id="loadingSpinner" class="loading" style="display: none;"></div>
+                </button>
+            </form>
+            <div id="message" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- OTP Modal -->
+<!-- Add this to your login.html -->
+<div id="otpModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <h2>OTP Verification</h2>
+    <p>Enter the 6-digit code sent to your email</p>
+    
+    <form id="otpForm">
+      <div class="otp-container">
+        <input type="text" class="otp-input" maxlength="1" data-index="1" autofocus>
+        <input type="text" class="otp-input" maxlength="1" data-index="2">
+        <input type="text" class="otp-input" maxlength="1" data-index="3">
+        <input type="text" class="otp-input" maxlength="1" data-index="4">
+        <input type="text" class="otp-input" maxlength="1" data-index="5">
+        <input type="text" class="otp-input" maxlength="1" data-index="6">
+      </div>
+      
+      <div id="otpMessage" class="message"></div>
+      
+      <button type="submit" id="verifyOtpBtn">
+        <span id="otpBtnText">Verify</span>
+        <div id="otpLoadingSpinner" class="loading-spinner"></div>
+      </button>
+      
+      <div class="otp-footer">
+        Didn't receive code? 
+        <a id="resendOtp" class="resend-link">Resend OTP</a>
+        <span id="countdown" class="countdown"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="login.js"></script>
+</body>
+</html>

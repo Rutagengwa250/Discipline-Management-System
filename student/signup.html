@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Animated Sign-Up Form</title>
+
+  <!-- Font Awesome for Icons & Spinner -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Fo3rlrZj/kTcXnF4cE8Q1N9R+UN8V0XQmVZ2sV4c2QxO+8kWyO7FYkFg3VgxJxCF1+4e7c8VvKDGVlzZFnzOiw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- CSS Styling -->
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 420px;
+      animation: slideUp 0.8s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+
+    .input-group {
+      margin-bottom: 1.2rem;
+      position: relative;
+    }
+
+    .input-group i {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+      color: #888;
+    }
+
+    .input-group input,
+    .input-group select {
+      width: 100%;
+      padding: 10px 10px 10px 35px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background-color: #f9f9f9;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+      outline: none;
+      border-color: #667eea;
+      background-color: #fff;
+      box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+    }
+
+    label {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .btn {
+      width: 100%;
+      background: #667eea;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn:hover {
+      background: #5a67d8;
+    }
+
+    .spinner {
+      display: none;
+      font-size: 1rem;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #4caf50;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      display: none;
+      animation: slideDown 0.4s ease;
+      z-index: 1000;
+    }
+
+    .notification.error {
+      background-color: #f44336;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translate(-50%, -20px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    @media (max-width: 500px) {
+      .container {
+        margin: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Notification -->
+  <div class="notification" id="notification"></div>
+
+  <!-- Form Container -->
+  <div class="container">
+    <form class="signUp" id="signupForm">
+      <h2><i class="fas fa-user-plus"></i> Sign Up</h2>
+
+      <div class="input-group">
+        <label for="student-firstname">Firstname</label>
+        <i class="fas fa-user"></i>
+        <input type="text" id="student-firstname" placeholder="Enter first name" required />
+      </div>
+
+      <div class="input-group">
+        <label for="student_lastName">Lastname</label>
+        <i class="fas fa-user-tag"></i>
+        <input type="text" id="student_lastName" placeholder="Enter last name" required />
+      </div>
+
+      <div class="input-group">
+        <label for="className">Select Class</label>
+        <i class="fas fa-school"></i>
+        <select id="className" required>
+          <option value="">-- Choose Class --</option>
+          <option value="S1">Senior 1</option>
+          <option value="S2">Senior 2</option>
+          <option value="S3">Senior 3</option>
+          <option value="S4 MPC">Senior 4 MPC</option>
+          <option value="S4 MCB">Senior 4 MCB</option>
+          <option value="S4 PCM">Senior 4 PCM</option>
+          <option value="S4 PCB">Senior 4 PCB</option>
+          <option value="S4 MCE">Senior 4 MCE</option>
+          <option value="S5 MPC">Senior 5 MPC</option>
+          <option value="S5 MCB">Senior 5 MCB</option>
+          <option value="S5 PCM">Senior 5 PCM</option>
+          <option value="S5 PCB">Senior 5 PCB</option>
+          <option value="S5 MCE">Senior 5 MCE</option>
+          <option value="S6 MPC">Senior 6 MPC</option>
+          <option value="S6 MCB">Senior 6 MCB</option>
+          <option value="S6 PCM">Senior 6 PCM</option>
+          <option value="S6 PCB">Senior 6 PCB</option>
+          <option value="S6 MCE">Senior 6 MCE</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn">
+        <span>Sign Up</span>
+        <i class="fas fa-spinner spinner" id="spinner"></i>
+      </button>
+    </form>
+  </div>
+
+  <!-- Axios CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <!-- JS Logic -->
+  <script>
+    const form = document.getElementById('signupForm');
+    const spinner = document.getElementById('spinner');
+    const notification = document.getElementById('notification');
+
+    function showNotification(message, type = 'success') {
+      notification.textContent = message;
+      notification.className = 'notification' + (type === 'error' ? ' error' : '');
+      notification.style.display = 'block';
+
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 4000);
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const student_firstName = document.getElementById('student-firstname').value.trim();
+      const student_lastName = document.getElementById('student_lastName').value.trim();
+      const className = document.getElementById('className').value;
+
+      if (!student_firstName || !student_lastName || !className) {
+        showNotification('Please fill in all fields.', 'error');
+        return;
+      }
+
+      spinner.style.display = 'inline-block'; // Show spinner
+
+      try {
+        const response = await axios.post('http://localhost:5000/register', {
+          student_firstName,
+          student_lastName,
+          className
+        });
+
+        showNotification('Registration was successfully submitted!');
+        form.reset();
+      } catch (error) {
+        showNotification(error?.response?.data?.message || 'Registration failed. Please try again.', 'error');
+      } finally {
+        spinner.style.display = 'none'; // Hide spinner
+      }
+    });
+  </script>
+
+</body>
+</html>

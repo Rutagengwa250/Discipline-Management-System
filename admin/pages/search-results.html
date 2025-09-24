@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - Discipline Management System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3a0ca3;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fb;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Navigation Styles */
+        .navBar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            font-size: 2rem;
+            color: white;
+        }
+        
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+        }
+        
+        .logo img {
+            height: 40px;
+        }
+        
+        .searchStudent {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin: 0 20px;
+
+        }
+        
+        .searchStudent input {
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            width: 300px;
+            outline: none;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .searchStudent input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .searchStudent input:focus {
+            border-color: white;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .searchStudent img {
+            height: 20px;
+            margin-left: -35px;
+            cursor: pointer;
+            filter: brightness(0) invert(1);
+        }
+        
+        .suggestions-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 101;
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .suggestion-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            color: var(--dark);
+        }
+        
+        .suggestion-item:hover {
+            background-color: #f5f7fb;
+        }
+        
+        .nav-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .links {
+            display: flex;
+            gap: 20px;
+            flex-direction: row;
+        }
+
+        .links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .links a:hover, .links a.active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .user-info img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 200px;
+            z-index: 100;
+            display: none;
+        }
+
+        .user-dropdown a {
+            display: block;
+            padding: 12px 15px;
+            color: var(--dark);
+            text-decoration: none;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .user-dropdown a:hover {
+            background-color: var(--light);
+        }
+
+        .user-dropdown a:last-child {
+            border-bottom: none;
+        }
+
+        .user-info:hover .user-dropdown {
+            display: block;
+        }
+
+        /* Hamburger Menu */
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 21px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .hamburger span {
+            height: 3px;
+            width: 100%;
+            background-color: white;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+        
+        .search-results h1 {
+            font-size: 28px;
+            margin-bottom: 25px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .search-results h1 i {
+            color: var(--primary);
+        }
+        
+        /* Results Container */
+        #search-results-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .result-card {
+            background: var(--light);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .result-card:last-child {
+            margin-bottom: 0;
+        }
+        
+        .student-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .student-details h3 {
+            font-size: 18px;
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+        
+        .student-details p {
+            color: var(--gray);
+            font-size: 14px;
+        }
+        
+        .student-points {
+            background: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        /* Add these styles to your existing CSS */
+        .student-card {
+            background: var(--light);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .student-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .student-info div {
+            margin-bottom: 10px;
+        }
+
+        .student-info strong {
+            display: block;
+            color: var(--dark);
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .student-info p {
+            color: var(--gray);
+            margin: 0;
+        }
+
+        .student-records {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .student-records h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: var(--dark);
+            font-size: 18px;
+        }
+
+        .records-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .record-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .record-date {
+            font-size: 14px;
+            color: var(--gray);
+        }
+
+        .record-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-positive {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-negative {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-neutral {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+
+        .record-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 15px;
+        }
+
+        .record-description {
+            margin: 0;
+            flex: 1;
+            color: var(--dark);
+        }
+
+        .record-points {
+            font-weight: 600;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        .record-teacher {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--gray);
+            font-style: italic;
+        }
+
+        .no-records {
+            text-align: center;
+            padding: 20px;
+            color: var(--gray);
+        }
+
+        .no-records i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .view-all-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .view-all-btn:hover {
+            background: var(--secondary);
+        }
+        
+        /* Form Styles */
+        #deduct-marks-form {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 25px;
+        }
+        
+        #deduct-marks-form h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        #deduct-marks-form h2 i {
+            color: var(--primary);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .form-control, #faultDescription, #marksToDeduct {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus, #faultDescription:focus, #marksToDeduct:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+            outline: none;
+        }
+        
+        #faultDescription {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Footer */
+        footer {
+            background: white;
+            padding: 20px;
+            text-align: center;
+            color: var(--gray);
+            border-top: 1px solid var(--light-gray);
+            margin-top: auto;
+        }
+        
+        /* No Results Message */
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+        }
+        
+        .no-results i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: var(--light-gray);
+        }
+        
+        .no-results p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        /* Responsive Design */
+      @media (max-width: 1024px) {
+            .navBar .container {
+                padding: 0 20px;
+            }
+            
+            .searchStudent input {
+                width: 250px;
+            }
+            
+            .links {
+                gap: 15px;
+            }
+            
+           
+        }
+        
+        @media (max-width: 768px) {
+            .hamburger {
+                display: flex;
+            }
+            
+            .links {
+                position: fixed;
+                top: 70px;
+                right: -100%;
+                background-color: var(--secondary);
+                width: 250px;
+                height: calc(100vh - 70px);
+                flex-direction: column;
+                padding: 20px;
+                transition: right 0.3s;
+                z-index: 100;
+            }
+            
+            .links.active {
+                right: 0;
+            }
+            
+            .links a {
+                display: block;
+                padding: 15px;
+                border-radius: 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .searchStudent {
+                width: 100%;
+                margin: 0 15px;
+            }
+            
+            .searchStudent input {
+                width: 100%;
+            }
+          
+        }
+        
+        /* NEW RESPONSIVE STYLES FOR MOBILE AND TABLET */
+        /* Tablet (768px and below) */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+                flex-wrap: wrap;
+            }
+            
+            .logo h1 {
+                font-size: 1.5rem;
+            }
+            
+            .logo i {
+                font-size: 1.7rem;
+            }
+            
+            .nav-container {
+                order: 3;
+                width: 100%;
+                justify-content: space-between;
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .user-info span {
+                display: none;
+            }
+            
+           
+        }
+        
+        /* Mobile (480px and below) */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .logo h1 {
+                font-size: 1.3rem;
+            }
+            
+            .logo i {
+                font-size: 1.5rem;
+            }
+            .notification {
+                min-width: 250px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+            }
+            
+            .notification-content {
+                padding: 10px 15px;
+            }
+            
+            .user-dropdown {
+                width: 180px;
+            }
+            
+            /* Hide DMS name and username on mobile */
+            .logo h1, .user-info span {
+                display: none;
+            }
+            
+            /* Ensure logo, search and menu are on the same line */
+            .container {
+                justify-content: space-between;
+            }
+            
+            .searchStudent {
+                flex: 1;
+                margin: 0 10px;
+            }
+        }
+        
+
+        @media (max-width: 360px) {
+            .logo h1 {
+                font-size: 1.1rem;
+            }
+            
+            .logo i {
+                font-size: 1.3rem;
+            }
+        }
+         
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navBar">
+        <div class="container">
+            <!-- Logo -->
+            <div class="logo">
+                <i class="fas fa-graduation-cap"></i>
+                <h1>DMS</h1>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="searchStudent">
+                <input type="text" id="searchInput" placeholder="Search by name">
+                <img src="/211817_search_strong_icon.png" id="searchStudentBtn" alt="Search">
+                <div class="suggestions-container"></div>
+            </div>
+
+            <!-- Navigation & User Info -->
+            <div class="nav-container">
+                <nav class="links">
+                    <a href="profile-page.html"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="permission.html"><i class="fas fa-clipboard-check"></i> Permission</a>
+                    <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
+                    <a href="faut-requests.html"><i class="fas fa-tasks"></i> Requests</a>
+                    <a href="register-teacher.html"><i class="fas fa-user-plus"></i> Register Teacher</a>
+                </nav>
+
+                <div class="user-info">
+                    <img src="https://ui-avatars.com/api/?name=Admin+User&background=random" alt="User">
+                    <div class="user-dropdown">
+                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+
+                <button class="hamburger" aria-label="Toggle navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="search-results">
+            <h1><i class="fas fa-search"></i> Search Results</h1>
+            <div id="search-results-container"></div>
+            <form id="deduct-marks-form">
+                <h2><i class="fas fa-minus-circle"></i> Deduct Marks and Log Fault</h2>
+                
+                <div class="form-group">
+                    <label for="studentSelect">Select Student:</label>
+                    <select id="studentSelect" class="form-control" required>
+                        <option value="">-- Select a student --</option>
+                        <!-- Students will be populated by JavaScript -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="faultDescription">Fault Description:</label>
+                    <textarea id="faultDescription" name="faultDescription" rows="4" placeholder="Describe the fault or reason for deducting marks..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="marksToDeduct">Marks to Deduct:</label>
+                    <input type="number" id="marksToDeduct" name="marksToDeduct" min="1" max="10" placeholder="Enter points to deduct" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-check"></i> Deduct Marks
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 Discipline Management System. All rights reserved.</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="search-results.js"></script>
