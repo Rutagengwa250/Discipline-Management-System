@@ -5,10 +5,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const connection = mysql.createPool({
-  host: process.env.mysql_host,
-  user: process.env.mysql_user,
-  password: process.env.mysql_password,
-  database: process.env.mysql_database,
+  host: process.env.MYSQLHOST || process.env.mysql_host || 'localhost',
+  user: process.env.MYSQLUSER || process.env.mysql_user || 'root',
+  password: process.env.MYSQLPASSWORD || process.env.mysql_password || 'resetpassword',
+  database: process.env.MYSQLDATABASE || process.env.mysql_database || 'students',
+  port: process.env.MYSQLPORT || 3306
 }).promise();
 
 // Function to create a user (admin or teacher)

@@ -25,7 +25,218 @@ app.use(express.static(join(__dirname, '..', 'files')));
 app.use(express.json());
 
 // authMiddleware.js
+import { promisePool } from './Admin-form/database.js';
 
+async function createTables() {
+  try {
+    console.log('Creating database tables...');
+
+    // Create user_roles table first (referenced by administrator)
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS user_roles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        role_name VARCHAR(50) UNIQUE NOT NULL,
+        description TEXT
+      )
+    `);
+
+    // Create users table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        user_id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        role ENUM('admin','teacher') NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create administrator table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS administrator (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        admin_name VARCHAR(255),
+        admin_password VARCHAR(255),
+        date_registered DATETIME DEFAULT CURRENT_TIMESTAMP,
+        role_id INT,
+        otp_secret VARCHAR(32),
+        otp_enabled TINYINT DEFAULT 0,
+        otp_last_used DATETIME,
+        email VARCHAR(255),
+        FOREIGN KEY (role_id) REFERENCES user_roles(id)
+      )
+    `);
+
+    // Create student table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS student (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_firstName VARCHAR(50) NOT NULL,
+        student_lastName VARCHAR(50) NOT NULL,
+        student_class VARCHAR(50),
+        student_conduct INT DEFAULT 40,
+        date_registered DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create teachers table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS teachers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        teacher_usernames VARCHAR(50),
+        teacher_password VARCHAR(255),
+        date_registered DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create faults table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS faults (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        fault_description TEXT NOT NULL,
+        fault_type VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        points_deducted INT DEFAULT 0,
+        created_by INT,
+        FOREIGN KEY (student_id) REFERENCES student(id)
+      )
+    `);
+
+    // Create permissions table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS permissions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_name VARCHAR(100) NOT NULL,
+        student_class VARCHAR(50) NOT NULL,
+        permission_type ENUM('weekend','medical','personal','other') NOT NULL,
+        departure_time DATETIME NOT NULL,
+        return_time DATETIME NOT NULL,
+        actual_return_time DATETIME,
+        destination VARCHAR(255) NOT NULL,
+        reason TEXT NOT NULL,
+        status ENUM('pending','approved','denied','revoked') DEFAULT 'pending',
+        guardian_info TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_by INT
+      )
+    `);
+
+    // Create penalty_requests table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS penalty_requests (
+        request_id INT AUTO_INCREMENT PRIMARY KEY,
+        teacher_id INT,
+        student_id INT,
+        fault_description TEXT,
+        status ENUM('pending','approved','rejected') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (teacher_id) REFERENCES users(user_id),
+        FOREIGN KEY (student_id) REFERENCES student(id)
+      )
+    `);
+
+    // Create removal_requests table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS removal_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        fault_id INT,
+        student_id INT NOT NULL,
+        requester_id INT NOT NULL,
+        reason TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        resolved_at TIMESTAMP NULL,
+        resolved_by INT,
+        admin_comment VARCHAR(255),
+        points_deducted INT,
+        FOREIGN KEY (fault_id) REFERENCES faults(id),
+        FOREIGN KEY (student_id) REFERENCES student(id),
+        FOREIGN KEY (requester_id) REFERENCES administrator(id),
+        FOREIGN KEY (resolved_by) REFERENCES administrator(id)
+      )
+    `);
+
+    // Create permission_history table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS permission_history (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        permission_id INT NOT NULL,
+        change_type ENUM('create','status_change','update','return_recorded') NOT NULL,
+        old_value TEXT,
+        new_value TEXT,
+        change_reason TEXT,
+        changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        changed_by INT,
+        FOREIGN KEY (permission_id) REFERENCES permissions(id)
+      )
+    `);
+
+    // Create user_otps table
+    await promisePool.execute(`
+      CREATE TABLE IF NOT EXISTS user_otps (
+        otp_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        otp_secret TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at DATETIME NOT NULL,
+        is_used TINYINT DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      )
+    `);
+
+    console.log('✅ All tables created successfully');
+
+    // Add sample data if tables are empty
+    await addSampleData();
+
+  } catch (error) {
+    console.log('Database setup note:', error.message);
+  }
+}
+
+async function addSampleData() {
+  try {
+    // Check if user_roles has data
+    const [roles] = await promisePool.execute('SELECT COUNT(*) as count FROM user_roles');
+    if (roles[0].count === 0) {
+      await promisePool.execute(
+        'INSERT INTO user_roles (role_name, description) VALUES (?, ?)',
+        ['admin', 'System Administrator']
+      );
+      await promisePool.execute(
+        'INSERT INTO user_roles (role_name, description) VALUES (?, ?)',
+        ['teacher', 'School Teacher']
+      );
+      console.log('✅ Sample roles added');
+    }
+
+    // Check if users has data
+    const [users] = await promisePool.execute('SELECT COUNT(*) as count FROM users');
+    if (users[0].count === 0) {
+      const bcrypt = await import('bcryptjs');
+      const hashedPassword = await bcrypt.default.hash('admin123', 10);
+      
+      await promisePool.execute(
+        'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+        ['admin', hashedPassword, 'admin']
+      );
+      console.log('✅ Sample admin user created: admin / admin123');
+    }
+
+  } catch (error) {
+    console.log('Sample data insertion note:', error.message);
+  }
+}
+
+// Call this when server starts
+app.listen(PORT, '0.0.0.0', async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  await createTables();
+});
 const authenticateToken = (req, res, next) => {
   // Get token from header
   const authHeader = req.headers['authorization'];
