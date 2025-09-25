@@ -25,7 +25,6 @@ app.use(express.static(join(__dirname, '..', 'files')));
 app.use(express.json());
 
 // authMiddleware.js
-import { connection } from './Admin-form/database.js';
 
 async function createTables() {
   try {
