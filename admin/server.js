@@ -15,7 +15,7 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const SECRET_KEY = process.env.SECRET_KEY || 'resetpassword';
-
+const PORT = process.env.PORT || 3000;
 // Serve static files
 app.use(express.static(join(__dirname, 'Admin-form')));
 app.use(express.static(join(__dirname, 'pages')));
