@@ -25,14 +25,14 @@ app.use(express.static(join(__dirname, '..', 'files')));
 app.use(express.json());
 
 // authMiddleware.js
-import { promisePool } from './Admin-form/database.js';
+import { connection } from './Admin-form/database.js';
 
 async function createTables() {
   try {
     console.log('Creating database tables...');
 
     // Create user_roles table first (referenced by administrator)
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS user_roles (
         id INT AUTO_INCREMENT PRIMARY KEY,
         role_name VARCHAR(50) UNIQUE NOT NULL,
@@ -41,7 +41,7 @@ async function createTables() {
     `);
 
     // Create users table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS users (
         user_id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(255) UNIQUE NOT NULL,
@@ -53,7 +53,7 @@ async function createTables() {
     `);
 
     // Create administrator table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS administrator (
         id INT AUTO_INCREMENT PRIMARY KEY,
         admin_name VARCHAR(255),
@@ -69,7 +69,7 @@ async function createTables() {
     `);
 
     // Create student table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS student (
         id INT AUTO_INCREMENT PRIMARY KEY,
         student_firstName VARCHAR(50) NOT NULL,
@@ -81,7 +81,7 @@ async function createTables() {
     `);
 
     // Create teachers table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS teachers (
         id INT AUTO_INCREMENT PRIMARY KEY,
         teacher_usernames VARCHAR(50),
@@ -91,7 +91,7 @@ async function createTables() {
     `);
 
     // Create faults table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS faults (
         id INT AUTO_INCREMENT PRIMARY KEY,
         student_id INT NOT NULL,
@@ -105,7 +105,7 @@ async function createTables() {
     `);
 
     // Create permissions table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS permissions (
         id INT AUTO_INCREMENT PRIMARY KEY,
         student_name VARCHAR(100) NOT NULL,
@@ -125,7 +125,7 @@ async function createTables() {
     `);
 
     // Create penalty_requests table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS penalty_requests (
         request_id INT AUTO_INCREMENT PRIMARY KEY,
         teacher_id INT,
@@ -140,7 +140,7 @@ async function createTables() {
     `);
 
     // Create removal_requests table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS removal_requests (
         id INT AUTO_INCREMENT PRIMARY KEY,
         fault_id INT,
@@ -161,7 +161,7 @@ async function createTables() {
     `);
 
     // Create permission_history table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS permission_history (
         id INT AUTO_INCREMENT PRIMARY KEY,
         permission_id INT NOT NULL,
@@ -176,7 +176,7 @@ async function createTables() {
     `);
 
     // Create user_otps table
-    await promisePool.execute(`
+    await connection.execute(`
       CREATE TABLE IF NOT EXISTS user_otps (
         otp_id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
@@ -201,13 +201,13 @@ async function createTables() {
 async function addSampleData() {
   try {
     // Check if user_roles has data
-    const [roles] = await promisePool.execute('SELECT COUNT(*) as count FROM user_roles');
+    const [roles] = await connection.execute('SELECT COUNT(*) as count FROM user_roles');
     if (roles[0].count === 0) {
-      await promisePool.execute(
+      await connection.execute(
         'INSERT INTO user_roles (role_name, description) VALUES (?, ?)',
         ['admin', 'System Administrator']
       );
-      await promisePool.execute(
+      await connection.execute(
         'INSERT INTO user_roles (role_name, description) VALUES (?, ?)',
         ['teacher', 'School Teacher']
       );
@@ -215,12 +215,12 @@ async function addSampleData() {
     }
 
     // Check if users has data
-    const [users] = await promisePool.execute('SELECT COUNT(*) as count FROM users');
+    const [users] = await connection.execute('SELECT COUNT(*) as count FROM users');
     if (users[0].count === 0) {
       const bcrypt = await import('bcryptjs');
       const hashedPassword = await bcrypt.default.hash('admin123', 10);
       
-      await promisePool.execute(
+      await connection.execute(
         'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
         ['admin', hashedPassword, 'admin']
       );
