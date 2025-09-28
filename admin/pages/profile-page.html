@@ -929,7 +929,7 @@
         async function fetchAndDisplaySortedStudents() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5000/students', {
+                const response = await fetch('https://discipline-management-system-production.up.railway.app/students', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
