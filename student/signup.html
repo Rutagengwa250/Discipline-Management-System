@@ -3,26 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Registration</title>
+  <title>Student Registration</title>
 
   <!-- Font Awesome for Icons & Spinner -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Fo3rlrZj/kTcXnF4cE8Q1N9R+UN8V0XQmVZ2sV4c2QxO+8kWyO7FYkFg3VgxJxCF1+4e7c8VvKDGVlzZFnzOiw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <!-- CSS Styling -->
   <style>
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
+      padding: 20px;
       animation: fadeIn 1s ease-in-out;
     }
 
@@ -32,48 +33,72 @@
     }
 
     .container {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 2.5rem;
+      border-radius: 16px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
       width: 100%;
-      max-width: 420px;
+      max-width: 480px;
       animation: slideUp 0.8s ease;
     }
 
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
+      from { opacity: 0; transform: translateY(40px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
     h2 {
       text-align: center;
-      margin-bottom: 1.5rem;
-      color: #333;
+      margin-bottom: 2rem;
+      color: #2d3748;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      font-size: 1.8rem;
     }
 
     .input-group {
-      margin-bottom: 1.2rem;
+      margin-bottom: 1.5rem;
       position: relative;
     }
 
     .input-group i {
       position: absolute;
       top: 50%;
-      left: 10px;
+      left: 15px;
       transform: translateY(-50%);
-      color: #888;
+      color: #718096;
+      z-index: 1;
+      transition: color 0.3s ease;
+    }
+
+    .input-group label {
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 8px;
+      display: block;
+      font-size: 0.95rem;
+    }
+
+    .required::after {
+      content: " *";
+      color: #e53e3e;
     }
 
     .input-group input,
     .input-group select {
       width: 100%;
-      padding: 10px 10px 10px 35px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
+      padding: 14px 15px 14px 45px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
       font-size: 1rem;
       transition: all 0.3s ease;
-      background-color: #f9f9f9;
+      background-color: #fff;
+      position: relative;
+      font-family: inherit;
     }
 
     .input-group input:focus,
@@ -81,34 +106,66 @@
       outline: none;
       border-color: #667eea;
       background-color: #fff;
-      box-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      transform: translateY(-1px);
     }
 
-    label {
-      font-weight: 600;
-      color: #333;
-      margin-bottom: 5px;
-      display: block;
+    .input-group input:valid {
+      border-color: #38a169;
+    }
+
+    .name-hint {
+      font-size: 0.8rem;
+      color: #718096;
+      margin-top: 6px;
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .btn {
       width: 100%;
-      background: #667eea;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 12px;
+      padding: 16px;
       border: none;
-      border-radius: 8px;
-      font-size: 1rem;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: all 0.3s ease;
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
+      margin-top: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
     }
 
     .btn:hover {
-      background: #5a67d8;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(0);
     }
 
     .spinner {
@@ -124,32 +181,109 @@
 
     .notification {
       position: fixed;
-      top: 20px;
+      top: 25px;
       left: 50%;
       transform: translateX(-50%);
-      background-color: #4caf50;
-      color: white;
-      padding: 15px 25px;
-      border-radius: 6px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      background: #fff;
+      color: #2d3748;
+      padding: 18px 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
       display: none;
       animation: slideDown 0.4s ease;
       z-index: 1000;
+      max-width: 90%;
+      text-align: center;
+      border-left: 4px solid #38a169;
     }
 
     .notification.error {
-      background-color: #f44336;
+      border-left-color: #e53e3e;
+      background: #fed7d7;
+      color: #742a2a;
+    }
+
+    .notification.warning {
+      border-left-color: #dd6b20;
+      background: #feebc8;
+      color: #744210;
     }
 
     @keyframes slideDown {
-      from { opacity: 0; transform: translate(-50%, -20px); }
+      from { opacity: 0; transform: translate(-50%, -30px); }
       to { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    .form-footer {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .form-footer a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: color 0.3s ease;
+    }
+
+    .form-footer a:hover {
+      color: #5a67d8;
+      text-decoration: underline;
     }
 
     @media (max-width: 500px) {
       .container {
-        margin: 1rem;
+        padding: 2rem 1.5rem;
+        margin: 0;
       }
+      
+      body {
+        padding: 15px;
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+
+    .btn.loading {
+      opacity: 0.8;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn.loading:hover::before {
+      left: -100%;
+    }
+
+    .input-error {
+      border-color: #e53e3e !important;
+      background-color: #fff5f5 !important;
+    }
+
+    .input-success {
+      border-color: #38a169 !important;
+      background-color: #f0fff4 !important;
+    }
+
+    .character-count {
+      font-size: 0.75rem;
+      color: #718096;
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    .character-count.warning {
+      color: #dd6b20;
+    }
+
+    .character-count.error {
+      color: #e53e3e;
     }
   </style>
 </head>
@@ -161,22 +295,38 @@
   <!-- Form Container -->
   <div class="container">
     <form class="signUp" id="signupForm">
-      <h2><i class="fas fa-user-plus"></i> Sign Up</h2>
+      <h2>
+        <i class="fas fa-user-graduate"></i>
+        Student Registration
+      </h2>
 
       <div class="input-group">
-        <label for="student-firstname">Firstname</label>
+        <label for="student_firstName" class="required">First Name</label>
         <i class="fas fa-user"></i>
-        <input type="text" id="student-firstname" placeholder="Enter first name" required />
+        <input type="text" id="student_firstName" placeholder="Enter first name" required maxlength="50" />
+        <div class="character-count" id="firstNameCount">0/50</div>
       </div>
 
       <div class="input-group">
-        <label for="student_lastName">Lastname</label>
+        <label for="student_middleName">Middle Name(s)</label>
+        <i class="fas fa-user-friends"></i>
+        <input type="text" id="student_middleName" placeholder="Enter middle name(s) - optional" maxlength="100" />
+        <div class="name-hint">
+          <i class="fas fa-info-circle"></i>
+          For students with multiple middle names, enter them all here
+        </div>
+        <div class="character-count" id="middleNameCount">0/100</div>
+      </div>
+
+      <div class="input-group">
+        <label for="student_lastName" class="required">Last Name</label>
         <i class="fas fa-user-tag"></i>
-        <input type="text" id="student_lastName" placeholder="Enter last name" required />
+        <input type="text" id="student_lastName" placeholder="Enter last name" required maxlength="50" />
+        <div class="character-count" id="lastNameCount">0/50</div>
       </div>
 
       <div class="input-group">
-        <label for="className">Select Class</label>
+        <label for="className" class="required">Select Class</label>
         <i class="fas fa-school"></i>
         <select id="className" required>
           <option value="">-- Choose Class --</option>
@@ -198,10 +348,13 @@
         </select>
       </div>
 
-      <button type="submit" class="btn">
-        <span>Sign Up</span>
+      <button type="submit" class="btn" id="submitBtn">
+        <i class="fas fa-user-plus"></i>
+        <span>Register Student</span>
         <i class="fas fa-spinner spinner" id="spinner"></i>
       </button>
+
+
     </form>
   </div>
 
@@ -213,47 +366,184 @@
     const form = document.getElementById('signupForm');
     const spinner = document.getElementById('spinner');
     const notification = document.getElementById('notification');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Character counters
+    const firstNameCount = document.getElementById('firstNameCount');
+    const middleNameCount = document.getElementById('middleNameCount');
+    const lastNameCount = document.getElementById('lastNameCount');
+
+    // Initialize character counters
+    document.getElementById('student_firstName').addEventListener('input', function() {
+      firstNameCount.textContent = `${this.value.length}/50`;
+      if (this.value.length > 45) {
+        firstNameCount.classList.add('warning');
+      } else {
+        firstNameCount.classList.remove('warning');
+      }
+    });
+
+    document.getElementById('student_middleName').addEventListener('input', function() {
+      middleNameCount.textContent = `${this.value.length}/100`;
+      if (this.value.length > 90) {
+        middleNameCount.classList.add('warning');
+      } else {
+        middleNameCount.classList.remove('warning');
+      }
+    });
+
+    document.getElementById('student_lastName').addEventListener('input', function() {
+      lastNameCount.textContent = `${this.value.length}/50`;
+      if (this.value.length > 45) {
+        lastNameCount.classList.add('warning');
+      } else {
+        lastNameCount.classList.remove('warning');
+      }
+    });
 
     function showNotification(message, type = 'success') {
       notification.textContent = message;
-      notification.className = 'notification' + (type === 'error' ? ' error' : '');
+      notification.className = `notification ${type}`;
       notification.style.display = 'block';
 
       setTimeout(() => {
         notification.style.display = 'none';
-      }, 4000);
+      }, 5000);
+    }
+
+    function setLoadingState(isLoading) {
+      if (isLoading) {
+        submitBtn.classList.add('loading');
+        spinner.style.display = 'inline-block';
+        submitBtn.disabled = true;
+      } else {
+        submitBtn.classList.remove('loading');
+        spinner.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    }
+
+    function validateName(name, fieldName) {
+      if (!name.trim()) {
+        return `${fieldName} is required`;
+      }
+      if (name.length < 2) {
+        return `${fieldName} must be at least 2 characters long`;
+      }
+      if (!/^[a-zA-Z\s\-'.]+$/.test(name)) {
+        return `${fieldName} can only contain letters, spaces, hyphens, apostrophes, and periods`;
+      }
+      if (name.length > 50 && fieldName !== 'Middle name') {
+        return `${fieldName} must be less than 50 characters`;
+      }
+      return null;
     }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      const student_firstName = document.getElementById('student-firstname').value.trim();
+      const student_firstName = document.getElementById('student_firstName').value.trim();
+      const student_middleName = document.getElementById('student_middleName').value.trim();
       const student_lastName = document.getElementById('student_lastName').value.trim();
       const className = document.getElementById('className').value;
 
-      if (!student_firstName || !student_lastName || !className) {
-        showNotification('Please fill in all fields.', 'error');
+      // Validation
+      const firstNameError = validateName(student_firstName, 'First name');
+      const lastNameError = validateName(student_lastName, 'Last name');
+      
+      if (firstNameError) {
+        showNotification(firstNameError, 'error');
+        document.getElementById('student_firstName').classList.add('input-error');
+        document.getElementById('student_firstName').focus();
         return;
       }
 
-      spinner.style.display = 'inline-block'; // Show spinner
+      if (lastNameError) {
+        showNotification(lastNameError, 'error');
+        document.getElementById('student_lastName').classList.add('input-error');
+        document.getElementById('student_lastName').focus();
+        return;
+      }
+
+      if (!className) {
+        showNotification('Please select a class', 'error');
+        document.getElementById('className').focus();
+        return;
+      }
+
+      setLoadingState(true);
 
       try {
-        const response = await axios.post('http://localhost:5000/register', {
+        const requestData = {
           student_firstName,
           student_lastName,
           className
+        };
+
+        // Only include middleName if provided
+        if (student_middleName) {
+          requestData.student_middleName = student_middleName;
+        }
+
+        const response = await axios.post('http://localhost:5000/register', requestData, {
+          timeout: 15000,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
 
-        showNotification('Registration was successfully submitted!');
+        showNotification('Student registered successfully!', 'success');
         form.reset();
+        
+        // Reset character counters
+        firstNameCount.textContent = '0/50';
+        middleNameCount.textContent = '0/100';
+        lastNameCount.textContent = '0/50';
+        
+        // Focus on first name for next entry
+        setTimeout(() => {
+          document.getElementById('student_firstName').focus();
+        }, 100);
+        
       } catch (error) {
-        showNotification(error?.response?.data?.message || 'Registration failed. Please try again.', 'error');
+        console.error('Registration error:', error);
+        
+        if (error.code === 'ECONNABORTED') {
+          showNotification('Request timeout. Please check your connection and try again.', 'error');
+        } else if (error.response) {
+          const message = error.response.data?.message || 'Registration failed. Please try again.';
+          showNotification(message, 'error');
+        } else if (error.request) {
+          showNotification('Network error. Please check your connection and try again.', 'error');
+        } else {
+          showNotification('An unexpected error occurred. Please try again.', 'error');
+        }
       } finally {
-        spinner.style.display = 'none'; // Hide spinner
+        setLoadingState(false);
       }
     });
-  </script>
 
+    // Add input validation feedback
+    document.querySelectorAll('input[type="text"]').forEach(input => {
+      input.addEventListener('blur', function() {
+        const value = this.value.trim();
+        if (this.id === 'student_firstName' || this.id === 'student_lastName') {
+          const fieldName = this.id === 'student_firstName' ? 'First name' : 'Last name';
+          const error = validateName(value, fieldName);
+          
+          this.classList.remove('input-error', 'input-success');
+          if (error && value) {
+            this.classList.add('input-error');
+          } else if (value) {
+            this.classList.add('input-success');
+          }
+        }
+      });
+      
+      input.addEventListener('input', function() {
+        this.classList.remove('input-error', 'input-success');
+      });
+    });
+  </script>
 </body>
 </html>

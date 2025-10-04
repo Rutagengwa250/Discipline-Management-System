@@ -1,3 +1,17 @@
+    
+    function buildFullName(student) {
+        const names = [student.student_firstName];
+        
+        // Add middle name if exists
+        if (student.student_middleName && student.student_middleName.trim()) {
+            names.push(student.student_middleName);
+        }
+        
+        // Add last name
+        names.push(student.student_lastName);
+        
+        return names.join(' ');
+    }
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize hamburger menu
     const hamburger = document.querySelector('.hamburger');
@@ -50,38 +64,42 @@ function displaySearchResults() {
     searchResultsContainer.innerHTML = '';
     studentSelect.innerHTML = '<option value="">Select a student</option>';
 
-    // Display single student result
-    if (!Array.isArray(searchResults)) {
-        const studentCard = createStudentCard(searchResults);
+    // Handle the search results structure
+    let students = [];
+    
+    if (searchResults.results && Array.isArray(searchResults.results)) {
+        // New structure: {query: "...", results: [...], timestamp: "..."}
+        students = searchResults.results;
+    } else if (Array.isArray(searchResults)) {
+        // Old structure: direct array of students
+        students = searchResults;
+    } else if (searchResults.id) {
+        // Single student object
+        students = [searchResults];
+    } else {
+        searchResultsContainer.innerHTML = '<p>Invalid search results format.</p>';
+        return;
+    }
+
+    if (students.length === 0) {
+        searchResultsContainer.innerHTML = '<p>No students found matching your search.</p>';
+        return;
+    }
+
+    // Display all student results
+    students.forEach(student => {
+        const studentCard = createStudentCard(student);
         searchResultsContainer.appendChild(studentCard);
         
-        // Add to select dropdown
+        // Add to select dropdown - use buildFullName to include middle names
         const option = document.createElement('option');
-        option.value = searchResults.id;
-        option.textContent = `${searchResults.student_firstName} ${searchResults.student_lastName}`;
+        option.value = student.id;
+        option.textContent = buildFullName(student);
         studentSelect.appendChild(option);
         
         // Load previous records for this student
-        loadStudentRecords(searchResults.id, studentCard);
-    } 
-    // Display multiple student results
-    else if (searchResults.length > 0) {
-        searchResults.forEach(student => {
-            const studentCard = createStudentCard(student);
-            searchResultsContainer.appendChild(studentCard);
-            
-            // Add to select dropdown
-            const option = document.createElement('option');
-            option.value = student.id;
-            option.textContent = `${student.student_firstName} ${student.student_lastName}`;
-            studentSelect.appendChild(option);
-            
-            // Load previous records for this student
-            loadStudentRecords(student.id, studentCard);
-        });
-    } else {
-        searchResultsContainer.innerHTML = '<p>No students found matching your search.</p>';
-    }
+        loadStudentRecords(student.id, studentCard);
+    });
 }
 
 // Update the loadStudentRecords function
@@ -262,6 +280,9 @@ function createStudentCard(student) {
         statusColor = 'var(--danger)';
     }
 
+    // Build full name including middle name
+    const fullName = buildFullName(student);
+
     card.innerHTML = `
         <div class="student-info">
             <div>
@@ -269,16 +290,16 @@ function createStudentCard(student) {
                 <p>${student.id || 'N/A'}</p>
             </div>
             <div>
-                <strong>Name:</strong>
-                <p>${student.student_firstName} ${student.student_lastName}</p>
+                <strong>Full Name:</strong>
+                <p>${fullName}</p>
             </div>
             <div>
                 <strong>Class:</strong>
-                <p>${student.student_class}</p>
+                <p>${student.student_class || 'Not assigned'}</p>
             </div>
             <div>
                 <strong>Conduct Score:</strong>
-                <p>${student.student_conduct}</p>
+                <p>${student.student_conduct !== undefined ? student.student_conduct : 'N/A'}</p>
             </div>
             <div>
                 <strong>Status:</strong>
@@ -442,7 +463,8 @@ function initSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchStudentBtn');
     const suggestionsContainer = document.querySelector('.suggestions-container');
-    
+   
+
     searchInput.addEventListener('input', async function() {
         const query = this.value.trim();
         if (query.length < 2) {
@@ -452,11 +474,16 @@ function initSearch() {
         
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:5000/students/search?q=${query}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 5000
                 }
-            });
+            );
             
             displaySuggestions(response.data);
         } catch (error) {
@@ -465,32 +492,79 @@ function initSearch() {
         }
     });
     
-    searchBtn.addEventListener('click', async function() {
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    searchBtn.addEventListener('click', performSearch);
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    async function performSearch() {
         const query = searchInput.value.trim();
         if (!query) {
             alert('Please enter a student name');
+            searchInput.focus();
             return;
         }
         
+        // Show loading state
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+        searchBtn.disabled = true;
+        
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:5000/student/${encodeURIComponent(query)}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
                 }
-            });
+            );
             
-            localStorage.setItem('searchResults', JSON.stringify(response.data));
+            if (response.data.length === 0) {
+                alert('No students found matching your search. Please try different keywords.');
+                return;
+            }
+            
+            localStorage.setItem('searchResults', JSON.stringify({
+                query: query,
+                results: response.data,
+                timestamp: new Date().toISOString()
+            }));
             window.location.href = 'search-results.html';
+            
         } catch (error) {
             console.error('Error searching for student:', error);
             if (error.response?.status === 404) {
-                alert('Student not found. Please check the name and try again.');
+                alert('No students found with that name. Please check spelling and try again.');
+            } else if (error.response?.status === 401) {
+                alert('Session expired. Please login again.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            } else if (error.code === 'ECONNABORTED') {
+                alert('Search timeout. Please check your connection and try again.');
             } else {
-                handleApiError(error);
+                alert('Search failed. Please check your connection and try again.');
             }
+        } finally {
+            // Restore button state
+            searchBtn.innerHTML = originalBtnText;
+            searchBtn.disabled = false;
         }
-    });
+    }
     
     function displaySuggestions(suggestions) {
         suggestionsContainer.innerHTML = '';
@@ -500,25 +574,69 @@ function initSearch() {
             return;
         }
         
-        suggestions.forEach(student => {
+        // Limit to 7 suggestions for better UX
+        const limitedSuggestions = suggestions.slice(0, 7);
+        
+        limitedSuggestions.forEach(student => {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
             
-            // Create HTML structure with name and class
+            // Build full name considering middle names
+            const fullName = buildFullName(student);
+            
             div.innerHTML = `
-                <div class="suggestion-name">${student.student_firstName} ${student.student_lastName}</div>
-                <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                <div class="suggestion-main">
+                    <div class="suggestion-name">${fullName}</div>
+                    <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                </div>
+                ${student.student_id ? `<div class="suggestion-id">ID: ${student.student_id}</div>` : ''}
             `;
             
             div.addEventListener('click', () => {
-                searchInput.value = `${student.student_firstName} ${student.student_lastName}`;
+                searchInput.value = fullName;
                 suggestionsContainer.style.display = 'none';
-                searchInput.focus();
+                performSearch();
             });
+            
+            div.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            div.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+            
             suggestionsContainer.appendChild(div);
         });
         
         suggestionsContainer.style.display = 'block';
+    }
+    
+    function buildFullName(student) {
+        const names = [student.student_firstName];
+        
+        // Add middle name if exists
+        if (student.student_middleName && student.student_middleName.trim()) {
+            names.push(student.student_middleName);
+        }
+        
+        // Add last name
+        names.push(student.student_lastName);
+        
+        return names.join(' ');
+    }
+    
+    // Handle API errors consistently
+    function handleApiError(error) {
+        console.error('API Error:', error);
+        if (error.response?.status === 401) {
+            alert('Your session has expired. Please login again.');
+            window.location.href = 'login.html';
+        } else if (error.response?.status >= 500) {
+            alert('Server error. Please try again later.');
+        } else {
+            alert('An unexpected error occurred. Please try again.');
+        }
     }
 }
 

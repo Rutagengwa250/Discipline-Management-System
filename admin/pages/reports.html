@@ -976,85 +976,364 @@
         let currentReportParams = null;
         let currentApiUrl = null;
 
-        async function generateReport(type) {
-            // Safely get elements
-            const spinner = document.getElementById('loading-spinner');
-            const reportDisplay = document.getElementById('report-display');
-            
-            // Check if elements exist
-            if (!spinner || !reportDisplay) {
-                console.error('Required elements not found in DOM');
-                return;
-            }
+// Replace the entire generateReport function with this corrected version
+async function generateReport(type) {
+    // Safely get elements
+    const spinner = document.getElementById('loading-spinner');
+    const reportDisplay = document.getElementById('report-display');
+    
+    // Check if elements exist
+    if (!spinner || !reportDisplay) {
+        console.error('Required elements not found in DOM');
+        return;
+    }
 
-            try {
-                // Show loading state
-                spinner.innerHTML = '<div class="spinner"></div><p>Generating report...</p>';
-                spinner.style.display = 'flex';
+    try {
+        // Show loading state
+        spinner.innerHTML = '<div class="spinner"></div><p>Generating report...</p>';
+        spinner.style.display = 'flex';
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('No authentication token found');
+        }
+        
+        currentApiUrl = `http://localhost:5000/reports/${type}`;
+        currentReportParams = {};
+        currentReportType = type;
+        
+        // Set parameters based on report type
+        const today = new Date();
+        
+        switch(type) {
+            case 'daily':
+                currentReportParams.date = formatDate(today);
+                break;
                 
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    throw new Error('No authentication token found');
+            case 'weekly':
+                // Get start of week (Monday)
+                const startOfWeek = new Date(today);
+                startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+                // Get end of week (Sunday)
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                
+                currentReportParams.startDate = formatDate(startOfWeek);
+                currentReportParams.endDate = formatDate(endOfWeek);
+                break;
+                
+            case 'monthly':
+                // Get start of month
+                const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                // Get end of month
+                const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                
+                currentReportParams.startDate = formatDate(startOfMonth);
+                currentReportParams.endDate = formatDate(endOfMonth);
+                break;
+                
+            case 'custom':
+                const startDate = document.getElementById('startDate')?.value;
+                const endDate = document.getElementById('endDate')?.value;
+                const classFilter = document.getElementById('classFilter')?.value;
+                
+                if (!startDate || !endDate) {
+                    throw new Error('Please select both start and end dates');
                 }
                 
-                currentApiUrl = `http://localhost:5000/reports/${type}`;
-                currentReportParams = {};
-                currentReportType = type;
+                currentReportParams.startDate = startDate;
+                currentReportParams.endDate = endDate;
+                if (classFilter) currentReportParams.class = classFilter;
+                break;
                 
-                // For custom reports, use the filter values
-                if (type === 'custom') {
-                    const startDate = document.getElementById('startDate')?.value;
-                    const endDate = document.getElementById('endDate')?.value;
-                    const classFilter = document.getElementById('classFilter')?.value;
-                    
-                    if (!startDate || !endDate) {
-                        throw new Error('Please select both start and end dates');
-                    }
-                    
-                    currentReportParams.startDate = startDate;
-                    currentReportParams.endDate = endDate;
-                    if (classFilter) currentReportParams.class = classFilter;
-                } 
-                // ... rest of your existing parameter handling ...
-                
-                // Fetch report data
-                const response = await axios.get(currentApiUrl, {
-                    params: currentReportParams,
-                    headers: { 
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (!response.data) {
-                    throw new Error('No data received from server');
-                }
-                
-                // Display the report data
-                displayReportData(response.data);
-                
-            } catch (error) {
-                console.error('Error generating report:', error);
-                
-                if (spinner) {
-                    spinner.innerHTML = `
-                        <div class="error-icon">⚠️</div>
-                        <p>${error.message || 'Failed to generate report'}</p>
-                    `;
-                }
-                
-                if (error.response?.status === 401) {
-                    handleApiError(error);
-                }
-            } finally {
-                // Hide spinner after a delay
-                setTimeout(() => {
-                    if (spinner) {
-                        spinner.style.display = 'none';
-                    }
-                }, 500);
+            default:
+                throw new Error('Invalid report type');
+        }
+        
+        // Add class filter for non-custom reports if selected
+        if (type !== 'custom') {
+            const classFilter = document.getElementById('classFilter')?.value;
+            if (classFilter) {
+                currentReportParams.class = classFilter;
             }
         }
+        
+        console.log('Fetching report with params:', currentReportParams);
+        
+        // Fetch report data
+        const response = await axios.get(currentApiUrl, {
+            params: currentReportParams,
+            headers: { 
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.data) {
+            throw new Error('No data received from server');
+        }
+        
+        // Display the report data
+        displayReportData(response.data);
+        
+    } catch (error) {
+        console.error('Error generating report:', error);
+        
+        if (spinner) {
+            spinner.innerHTML = `
+                <div style="text-align: center; color: var(--danger);">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <p>${error.message || 'Failed to generate report'}</p>
+                    ${error.response?.data?.error ? `<p style="font-size: 0.9rem; margin-top: 0.5rem;">Server: ${error.response.data.error}</p>` : ''}
+                </div>
+            `;
+        }
+        
+        if (error.response?.status === 401) {
+            handleApiError(error);
+        }
+    } finally {
+        // Hide spinner after a delay
+        setTimeout(() => {
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+        }, 500);
+    }
+}
 
+// Also update the displayReportData function to handle different data structures
+function displayReportData(data) {
+    const reportDisplay = document.getElementById('report-display');
+    
+    // Handle different response formats
+    let cases = [];
+    let summary = {};
+    
+    if (Array.isArray(data)) {
+        cases = data;
+    } else if (data.cases && Array.isArray(data.cases)) {
+        cases = data.cases;
+        summary = data.summary || {};
+    } else if (data.data && Array.isArray(data.data)) {
+        cases = data.data;
+        summary = data.summary || {};
+    } else {
+        cases = [];
+    }
+
+    // Group cases by student
+    const grouped = {};
+    if (cases && cases.length > 0) {
+        cases.forEach(caseItem => {
+            const studentId = caseItem.student_id || caseItem.studentId || 'N/A';
+            if (!grouped[studentId]) {
+                grouped[studentId] = {
+                    student_id: studentId,
+                    student_firstName: caseItem.student_firstName || caseItem.firstName || '',
+                    student_lastName: caseItem.student_lastName || caseItem.lastName || '',
+                    student_class: caseItem.student_class || caseItem.class || 'N/A',
+                    faults: [],
+                    totalPoints: 0,
+                    dates: []
+                };
+            }
+            grouped[studentId].faults.push(caseItem.fault_description || caseItem.description || 'N/A');
+            grouped[studentId].totalPoints += caseItem.points_deducted || caseItem.points || 0;
+            if (caseItem.created_at || caseItem.date) {
+                const date = new Date(caseItem.created_at || caseItem.date);
+                grouped[studentId].dates.push(date.toLocaleDateString());
+            }
+        });
+    }
+
+    // Create table rows (one per student)
+    let tableRows = '';
+    const groupedArr = Object.values(grouped);
+    if (groupedArr.length > 0) {
+        groupedArr.forEach(student => {
+            tableRows += `
+                <tr>
+                    <td>${student.student_id}</td>
+                    <td>${student.student_firstName} ${student.student_lastName}</td>
+                    <td>${student.student_class}</td>
+                    <td>${student.faults.join(', ') || 'No faults recorded'}</td>
+                    <td>${student.totalPoints}</td>
+                    <td>${student.dates.join(', ') || 'No dates available'}</td>
+                </tr>
+            `;
+        });
+    } else {
+        tableRows = `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 2rem;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                        <i class="fas fa-info-circle" style="font-size: 2rem; color: var(--gray);"></i>
+                        <p>No disciplinary cases found for the selected period</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+    
+    // Create summary cards if summary data exists
+    let summaryHTML = '';
+    if (Object.keys(summary).length > 0) {
+        summaryHTML = `
+            <div class="report-summary">
+                <div class="summary-card" style="background: var(--primary); color: white; padding: 1rem; border-radius: var(--radius);">
+                    <h3>Total Cases</h3>
+                    <p style="font-size: 2rem; margin: 0.5rem 0;">${summary.totalCases || cases.length}</p>
+                </div>
+                <div class="summary-card" style="background: var(--warning); color: white; padding: 1rem; border-radius: var(--radius);">
+                    <h3>Students Involved</h3>
+                    <p style="font-size: 2rem; margin: 0.5rem 0;">${summary.uniqueStudents || groupedArr.length}</p>
+                </div>
+                <div class="summary-card" style="background: var(--danger); color: white; padding: 1rem; border-radius: var(--radius);">
+                    <h3>Total Points</h3>
+                    <p style="font-size: 2rem; margin: 0.5rem 0;">${summary.totalPoints || groupedArr.reduce((sum, student) => sum + student.totalPoints, 0)}</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Update report display
+    reportDisplay.innerHTML = `
+        <div class="report-header">
+            <h2>Disciplinary Report - ${currentReportType.charAt(0).toUpperCase() + currentReportType.slice(1)}</h2>
+            <div class="report-actions">
+                <button id="exportPdfBtn" class="btn-primary">
+                    <i class="fas fa-file-pdf"></i> Download PDF
+                </button>
+                <button id="exportExcelBtn" class="btn-secondary">
+                    <i class="fas fa-file-excel"></i> Export Excel
+                </button>
+                <button id="refreshReportBtn" class="btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+        ${summaryHTML}
+        <div style="overflow-x: auto;">
+            <table id="report-table">
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Student Name</th>
+                        <th>Class</th>
+                        <th>Fault Description</th>
+                        <th>Points Deducted</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Update the downloadReport function to handle font errors
+async function downloadReport(format) {
+    if (!currentApiUrl || !currentReportType) {
+        alert('Please generate a report first');
+        return;
+    }
+
+    try {
+        const spinner = document.createElement('div');
+        spinner.className = 'download-spinner';
+        spinner.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            text-align: center;
+        `;
+        spinner.innerHTML = `
+            <div class="spinner"></div>
+            <p>Generating ${format.toUpperCase()}...</p>
+        `;
+        document.body.appendChild(spinner);
+        
+        const token = localStorage.getItem('token');
+        
+        // Ensure we include all current parameters
+        const downloadParams = { ...currentReportParams };
+        
+        const response = await axios.get(`${currentApiUrl}/${format}`, {
+            params: downloadParams,
+            responseType: 'blob',
+            headers: { 
+                'Authorization': `Bearer ${token}`
+            },
+            timeout: 30000 // 30 second timeout for PDF generation
+        });
+        
+        // Check if we got a valid blob
+        if (!response.data || response.data.size === 0) {
+            throw new Error('Empty response from server');
+        }
+        
+        const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.setAttribute('download', `${currentReportType}_report_${new Date().toISOString().split('T')[0]}.${format}`);
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        setTimeout(() => {
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(downloadUrl);
+            document.body.removeChild(spinner);
+        }, 100);
+        
+    } catch (error) {
+        console.error(`Error generating ${format}:`, error);
+        
+        // More detailed error message
+        let errorMessage = `Failed to generate ${format.toUpperCase()} report.`;
+        
+        if (error.code === 'ECONNABORTED') {
+            errorMessage += " Request timed out. Please try again.";
+        } else if (error.response?.status === 500) {
+            if (format === 'pdf') {
+                errorMessage += " PDF generation service is currently unavailable. Please try Excel export or contact support.";
+            } else {
+                errorMessage += " Server error. Please try again later.";
+            }
+        } else if (error.response?.data) {
+            // Try to parse blob error message
+            try {
+                const errorText = await new Response(error.response.data).text();
+                const errorData = JSON.parse(errorText);
+                errorMessage += ` ${errorData.error || errorData.message || 'Unknown server error'}`;
+            } catch {
+                errorMessage += " Unknown error occurred.";
+            }
+        } else if (error.message.includes('font') || error.message.includes('Roboto')) {
+            errorMessage += " Font configuration error. Please contact system administrator.";
+        }
+        
+        alert(errorMessage);
+        document.querySelector('.download-spinner')?.remove();
+    }
+}
+
+// Add this helper function to format dates consistently
+function formatDate(date) {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
         // Helper function to format dates as YYYY-MM-DD
         function formatDate(date) {
             const d = new Date(date);
@@ -1240,90 +1519,522 @@
                 document.querySelector('.download-spinner')?.remove();
             }
         }
-        
-        function initSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const searchBtn = document.getElementById('searchStudentBtn');
-            const suggestionsContainer = document.querySelector('.suggestions-container');
-            
-            searchInput.addEventListener('input', async function() {
-                const query = this.value.trim();
-                if (query.length < 2) {
-                    suggestionsContainer.style.display = 'none';
-                    return;
-                }
-                
-                try {
-                    const token = localStorage.getItem('token');
-                    const response = await axios.get(`http://localhost:5000/students/search?q=${query}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    
-                    displaySuggestions(response.data);
-                } catch (error) {
-                    console.error('Error fetching search suggestions:', error);
-                    suggestionsContainer.style.display = 'none';
-                }
-            });
-            
-            searchBtn.addEventListener('click', async function() {
-                const query = searchInput.value.trim();
-                if (!query) {
-                    alert('Please enter a student name');
-                    return;
-                }
-                
-                try {
-                    const token = localStorage.getItem('token');
-                    const response = await axios.get(`http://localhost:5000/student/${encodeURIComponent(query)}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                    
-                    localStorage.setItem('searchResults', JSON.stringify(response.data));
-                    window.location.href = 'search-results.html';
-                } catch (error) {
-                    console.error('Error searching for student:', error);
-                    if (error.response?.status === 404) {
-                        alert('Student not found. Please check the name and try again.');
-                    } else {
-                        handleApiError(error);
-                    }
-                }
-            });
-            
-            function displaySuggestions(suggestions) {
-                suggestionsContainer.innerHTML = '';
-                
-                if (suggestions.length === 0) {
-                    suggestionsContainer.style.display = 'none';
-                    return;
-                }
-                
-                suggestions.forEach(student => {
-                    const div = document.createElement('div');
-                    div.className = 'suggestion-item';
-                    
-                    // Create HTML structure with name and class
-                    div.innerHTML = `
-                        <div class="suggestion-name">${student.student_firstName} ${student.student_lastName}</div>
-                        <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
-                    `;
-                    
-                    div.addEventListener('click', () => {
-                        searchInput.value = `${student.student_firstName} ${student.student_lastName}`;
-                        suggestionsContainer.style.display = 'none';
-                        searchInput.focus();
-                    });
-                    suggestionsContainer.appendChild(div);
-                });
-                
-                suggestionsContainer.style.display = 'block';
-            }
+function initSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchStudentBtn');
+    const suggestionsContainer = document.querySelector('.suggestions-container');
+    
+    searchInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            suggestionsContainer.style.display = 'none';
+            return;
         }
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 5000
+                }
+            );
+            
+            displaySuggestions(response.data);
+        } catch (error) {
+            console.error('Error fetching search suggestions:', error);
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    searchBtn.addEventListener('click', performSearch);
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    async function performSearch() {
+        const query = searchInput.value.trim();
+        if (!query) {
+            alert('Please enter a student name to search');
+            searchInput.focus();
+            return;
+        }
+        
+        // Show loading state
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+        searchBtn.disabled = true;
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                }
+            );
+            
+            if (response.data.length === 0) {
+                alert('No students found matching your search. Please try different keywords.');
+                return;
+            }
+            
+            localStorage.setItem('searchResults', JSON.stringify({
+                query: query,
+                results: response.data,
+                timestamp: new Date().toISOString()
+            }));
+            window.location.href = 'search-results.html';
+            
+        } catch (error) {
+            console.error('Error searching for student:', error);
+            if (error.response?.status === 404) {
+                alert('No students found with that name. Please check spelling and try again.');
+            } else if (error.response?.status === 401) {
+                alert('Session expired. Please login again.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            } else if (error.code === 'ECONNABORTED') {
+                alert('Search timeout. Please check your connection and try again.');
+            } else {
+                alert('Search failed. Please check your connection and try again.');
+            }
+        } finally {
+            // Restore button state
+            searchBtn.innerHTML = originalBtnText;
+            searchBtn.disabled = false;
+        }
+    }
+    
+    function displaySuggestions(suggestions) {
+        suggestionsContainer.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        // Limit to 7 suggestions for better UX
+        const limitedSuggestions = suggestions.slice(0, 7);
+        
+        limitedSuggestions.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            
+            // Build full name considering middle names
+            const fullName = buildFullName(student);
+            
+            div.innerHTML = `
+                <div class="suggestion-main">
+                    <div class="suggestion-name">${fullName}</div>
+                    <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                </div>
+                ${student.student_id ? `<div class="suggestion-id">ID: ${student.student_id}</div>` : ''}
+            `;
+            
+            div.addEventListener('click', () => {
+                searchInput.value = fullName;
+                suggestionsContainer.style.display = 'none';
+                performSearch();
+            });
+            
+            div.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            div.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+            
+            suggestionsContainer.appendChild(div);
+        });
+        
+        suggestionsContainer.style.display = 'block';
+    }
+    
+    function buildFullName(student) {
+        const names = [student.student_firstName];
+        
+        // Add middle name if exists and not empty
+        if (student.student_middleName && student.student_middleName.trim()) {
+            names.push(student.student_middleName);
+        }
+        
+        // Add last name
+        names.push(student.student_lastName);
+        
+        return names.join(' ');
+    }
+}
+  
+    searchInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 5000
+                }
+            );
+            
+            displaySuggestions(response.data);
+        } catch (error) {
+            console.error('Error fetching search suggestions:', error);
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    searchBtn.addEventListener('click', performSearch);
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    async function performSearch() {
+        const query = searchInput.value.trim();
+        if (!query) {
+            alert('Please enter a student name to search');
+            searchInput.focus();
+            return;
+        }
+        
+        // Show loading state
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+        searchBtn.disabled = true;
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                }
+            );
+            
+            if (response.data.length === 0) {
+                alert('No students found matching your search. Please try different keywords.');
+                return;
+            }
+            
+            localStorage.setItem('searchResults', JSON.stringify({
+                query: query,
+                results: response.data,
+                timestamp: new Date().toISOString()
+            }));
+            window.location.href = 'search-results.html';
+            
+        } catch (error) {
+            console.error('Error searching for student:', error);
+            if (error.response?.status === 404) {
+                alert('No students found with that name. Please check spelling and try again.');
+            } else if (error.response?.status === 401) {
+                alert('Session expired. Please login again.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            } else if (error.code === 'ECONNABORTED') {
+                alert('Search timeout. Please check your connection and try again.');
+            } else {
+                alert('Search failed. Please check your connection and try again.');
+            }
+        } finally {
+            // Restore button state
+            searchBtn.innerHTML = originalBtnText;
+            searchBtn.disabled = false;
+        }
+    }
+    
+    function displaySuggestions(suggestions) {
+        suggestionsContainer.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        // Limit to 7 suggestions for better UX
+        const limitedSuggestions = suggestions.slice(0, 7);
+        
+        limitedSuggestions.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            
+            // Build full name considering middle names
+            const fullName = buildFullName(student);
+            
+            div.innerHTML = `
+                <div class="suggestion-main">
+                    <div class="suggestion-name">${fullName}</div>
+                    <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                </div>
+                ${student.student_id ? `<div class="suggestion-id">ID: ${student.student_id}</div>` : ''}
+            `;
+            
+            div.addEventListener('click', () => {
+                searchInput.value = fullName;
+                suggestionsContainer.style.display = 'none';
+                performSearch();
+            });
+            
+            div.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            div.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+            
+            suggestionsContainer.appendChild(div);
+        });
+        
+        suggestionsContainer.style.display = 'block';
+    }
+    
+    function buildFullName(student) {
+        const names = [student.student_firstName];
+        
+        // Add middle name if exists and not empty
+        if (student.student_middleName && student.student_middleName.trim()) {
+            names.push(student.student_middleName);
+        }
+        
+        // Add last name
+        names.push(student.student_lastName);
+        
+        return names.join(' ');
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchStudentBtn');
+    const suggestionsContainer = document.querySelector('.suggestions-container');
+    
+    // Add search tips
+    const searchTips = document.createElement('div');
+    searchTips.className = 'search-tips';
+    searchTips.style.cssText = 'font-size: 0.8rem; color: #666; margin-top: 5px; padding: 8px; background: #f8f9fa; border-radius: 4px;';
+    searchTips.innerHTML = `
+        <strong>Search Tips:</strong> 
+        • First name only • Last name only • Full name • 
+        • First + Last • Any name part
+    `;
+    searchInput.parentNode.insertBefore(searchTips, searchInput.nextSibling);
+
+    searchInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 5000
+                }
+            );
+            
+            displaySuggestions(response.data);
+        } catch (error) {
+            console.error('Error fetching search suggestions:', error);
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    searchBtn.addEventListener('click', performSearch);
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    async function performSearch() {
+        const query = searchInput.value.trim();
+        if (!query) {
+            alert('Please enter a student name');
+            searchInput.focus();
+            return;
+        }
+        
+        // Show loading state
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+        searchBtn.disabled = true;
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                }
+            );
+            
+            if (response.data.length === 0) {
+                alert('No students found matching your search. Please try different keywords.');
+                return;
+            }
+            
+            localStorage.setItem('searchResults', JSON.stringify({
+                query: query,
+                results: response.data,
+                timestamp: new Date().toISOString()
+            }));
+            window.location.href = 'search-results.html';
+            
+        } catch (error) {
+            console.error('Error searching for student:', error);
+            if (error.response?.status === 404) {
+                alert('No students found with that name. Please check spelling and try again.');
+            } else if (error.response?.status === 401) {
+                alert('Session expired. Please login again.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            } else if (error.code === 'ECONNABORTED') {
+                alert('Search timeout. Please check your connection and try again.');
+            } else {
+                alert('Search failed. Please check your connection and try again.');
+            }
+        } finally {
+            // Restore button state
+            searchBtn.innerHTML = originalBtnText;
+            searchBtn.disabled = false;
+        }
+    }
+    
+    function displaySuggestions(suggestions) {
+        suggestionsContainer.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        // Limit to 7 suggestions for better UX
+        const limitedSuggestions = suggestions.slice(0, 7);
+        
+        limitedSuggestions.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            
+            // Build full name considering middle names
+            const fullName = buildFullName(student);
+            
+            div.innerHTML = `
+                <div class="suggestion-main">
+                    <div class="suggestion-name">${fullName}</div>
+                    <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                </div>
+                ${student.student_id ? `<div class="suggestion-id">ID: ${student.student_id}</div>` : ''}
+            `;
+            
+            div.addEventListener('click', () => {
+                searchInput.value = fullName;
+                suggestionsContainer.style.display = 'none';
+                performSearch();
+            });
+            
+            div.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            div.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+            
+            suggestionsContainer.appendChild(div);
+        });
+        
+        suggestionsContainer.style.display = 'block';
+    }
+    
+    function buildFullName(student) {
+        const names = [student.student_firstName];
+        
+        // Add middle name if exists
+        if (student.student_middleName && student.student_middleName.trim()) {
+            names.push(student.student_middleName);
+        }
+        
+        // Add last name
+        names.push(student.student_lastName);
+        
+        return names.join(' ');
+    }
+    
+    // Handle API errors consistently
+    function handleApiError(error) {
+        console.error('API Error:', error);
+        if (error.response?.status === 401) {
+            alert('Your session has expired. Please login again.');
+            window.location.href = 'login.html';
+        } else if (error.response?.status >= 500) {
+            alert('Server error. Please try again later.');
+        } else {
+            alert('An unexpected error occurred. Please try again.');
+        }
+    }
 
         function handleApiError(error) {
             if (error.response?.status === 401) {

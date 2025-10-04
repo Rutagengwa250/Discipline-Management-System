@@ -38,7 +38,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => {
+app.get('/signup.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'signup.html'));
 });
 

@@ -646,7 +646,172 @@
                 }
             }
         });
-        function initSearch() {
+function initSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchBtn = document.getElementById('searchStudentBtn');
+    const suggestionsContainer = document.querySelector('.suggestions-container');
+    
+    searchInput.addEventListener('input', async function() {
+        const query = this.value.trim();
+        if (query.length < 2) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 5000
+                }
+            );
+            
+            displaySuggestions(response.data);
+        } catch (error) {
+            console.error('Error fetching search suggestions:', error);
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    searchBtn.addEventListener('click', performSearch);
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    async function performSearch() {
+        const query = searchInput.value.trim();
+        if (!query) {
+            alert('Please enter a student name to search');
+            searchInput.focus();
+            return;
+        }
+        
+        // Show loading state
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+        searchBtn.disabled = true;
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                }
+            );
+            
+            if (response.data.length === 0) {
+                alert('No students found matching your search. Please try different keywords.');
+                return;
+            }
+            
+            localStorage.setItem('searchResults', JSON.stringify({
+                query: query,
+                results: response.data,
+                timestamp: new Date().toISOString()
+            }));
+            window.location.href = 'search-results.html';
+            
+        } catch (error) {
+            console.error('Error searching for student:', error);
+            if (error.response?.status === 404) {
+                alert('No students found with that name. Please check spelling and try again.');
+            } else if (error.response?.status === 401) {
+                alert('Session expired. Please login again.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            } else if (error.code === 'ECONNABORTED') {
+                alert('Search timeout. Please check your connection and try again.');
+            } else {
+                alert('Search failed. Please check your connection and try again.');
+            }
+        } finally {
+            // Restore button state
+            searchBtn.innerHTML = originalBtnText;
+            searchBtn.disabled = false;
+        }
+    }
+    
+    function displaySuggestions(suggestions) {
+        suggestionsContainer.innerHTML = '';
+        
+        if (suggestions.length === 0) {
+            suggestionsContainer.style.display = 'none';
+            return;
+        }
+        
+        // Limit to 7 suggestions for better UX
+        const limitedSuggestions = suggestions.slice(0, 7);
+        
+        limitedSuggestions.forEach(student => {
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            
+            // Build full name considering middle names
+            const fullName = buildFullName(student);
+            
+            div.innerHTML = `
+                <div class="suggestion-main">
+                    <div class="suggestion-name">${fullName}</div>
+                    <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                </div>
+                ${student.student_id ? `<div class="suggestion-id">ID: ${student.student_id}</div>` : ''}
+            `;
+            
+            div.addEventListener('click', () => {
+                searchInput.value = fullName;
+                suggestionsContainer.style.display = 'none';
+                performSearch();
+            });
+            
+            div.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            div.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+            
+            suggestionsContainer.appendChild(div);
+        });
+        
+        suggestionsContainer.style.display = 'block';
+    }
+    
+    function buildFullName(student) {
+        const names = [student.student_firstName];
+        
+        // Add middle name if exists and not empty
+        if (student.student_middleName && student.student_middleName.trim()) {
+            names.push(student.student_middleName);
+        }
+        
+        // Add last name
+        names.push(student.student_lastName);
+        
+        return names.join(' ');
+    }
+}
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchStudentBtn');
     const suggestionsContainer = document.querySelector('.suggestions-container');
@@ -728,7 +893,7 @@
         
         suggestionsContainer.style.display = 'block';
     }
-}
+
         initSearch();
         function showMessage(text, type) {
             const message = document.getElementById('message');

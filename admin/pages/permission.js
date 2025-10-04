@@ -1,10 +1,23 @@
-document.addEventListener('DOMContentLoaded', function() {
+function buildFullName(student) {
+    const names = [student.student_firstName];
+    
+    // Add middle name if exists and not empty
+    if (student.student_middleName && student.student_middleName.trim()) {
+        names.push(student.student_middleName);
+    }
+    
+    // Add last name
+    names.push(student.student_lastName);
+    
+    return names.join(' ');
+}document.addEventListener('DOMContentLoaded', function() {
     // Check authentication
     const token = localStorage.getItem('token');
     if (!token) {
         window.location.href = 'login.html';
         return;
     }
+    // Function to build full name including middle names
 
     // Safe element getter with error handling
     const getElement = (id) => {
@@ -126,11 +139,16 @@ function initSearch() {
         
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:5000/students/search?q=${query}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 5000
                 }
-            });
+            );
             
             displaySuggestions(response.data);
         } catch (error) {
@@ -139,32 +157,79 @@ function initSearch() {
         }
     });
     
-    searchBtn.addEventListener('click', async function() {
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+            suggestionsContainer.style.display = 'none';
+        }
+    });
+    
+    searchBtn.addEventListener('click', performSearch);
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
+        }
+    });
+    
+    async function performSearch() {
         const query = searchInput.value.trim();
         if (!query) {
-            alert('Please enter a student name');
+            alert('Please enter a student name to search');
+            searchInput.focus();
             return;
         }
         
+        // Show loading state
+        const originalBtnText = searchBtn.innerHTML;
+        searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+        searchBtn.disabled = true;
+        
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`http://localhost:5000/student/${encodeURIComponent(query)}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            const response = await axios.get(
+                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
                 }
-            });
+            );
             
-            localStorage.setItem('searchResults', JSON.stringify(response.data));
+            if (response.data.length === 0) {
+                alert('No students found matching your search. Please try different keywords.');
+                return;
+            }
+            
+            localStorage.setItem('searchResults', JSON.stringify({
+                query: query,
+                results: response.data,
+                timestamp: new Date().toISOString()
+            }));
             window.location.href = 'search-results.html';
+            
         } catch (error) {
             console.error('Error searching for student:', error);
             if (error.response?.status === 404) {
-                alert('Student not found. Please check the name and try again.');
+                alert('No students found with that name. Please check spelling and try again.');
+            } else if (error.response?.status === 401) {
+                alert('Session expired. Please login again.');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            } else if (error.code === 'ECONNABORTED') {
+                alert('Search timeout. Please check your connection and try again.');
             } else {
-                handleApiError(error);
+                alert('Search failed. Please check your connection and try again.');
             }
+        } finally {
+            // Restore button state
+            searchBtn.innerHTML = originalBtnText;
+            searchBtn.disabled = false;
         }
-    });
+    }
     
     function displaySuggestions(suggestions) {
         suggestionsContainer.innerHTML = '';
@@ -174,25 +239,56 @@ function initSearch() {
             return;
         }
         
-        suggestions.forEach(student => {
+        // Limit to 7 suggestions for better UX
+        const limitedSuggestions = suggestions.slice(0, 7);
+        
+        limitedSuggestions.forEach(student => {
             const div = document.createElement('div');
             div.className = 'suggestion-item';
             
-            // Create HTML structure with name and class
+            // Build full name considering middle names
+            const fullName = buildFullName(student);
+            
             div.innerHTML = `
-                <div class="suggestion-name">${student.student_firstName} ${student.student_lastName}</div>
-                <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                <div class="suggestion-main">
+                    <div class="suggestion-name">${fullName}</div>
+                    <div class="suggestion-class">${student.student_class || 'No class assigned'}</div>
+                </div>
+                ${student.student_id ? `<div class="suggestion-id">ID: ${student.student_id}</div>` : ''}
             `;
             
             div.addEventListener('click', () => {
-                searchInput.value = `${student.student_firstName} ${student.student_lastName}`;
+                searchInput.value = fullName;
                 suggestionsContainer.style.display = 'none';
-                searchInput.focus();
+                performSearch();
             });
+            
+            div.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            div.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+            
             suggestionsContainer.appendChild(div);
         });
         
         suggestionsContainer.style.display = 'block';
+    }
+    
+    function buildFullName(student) {
+        const names = [student.student_firstName];
+        
+        // Add middle name if exists and not empty
+        if (student.student_middleName && student.student_middleName.trim()) {
+            names.push(student.student_middleName);
+        }
+        
+        // Add last name
+        names.push(student.student_lastName);
+        
+        return names.join(' ');
     }
 }
 
@@ -271,35 +367,38 @@ function initSearch() {
     });
 
     // Display search results
-    function displaySearchResults(students) {
-        elements.studentSearchResults.innerHTML = '';
-        
-        if (!students || students.length === 0) {
-            elements.studentSearchResults.innerHTML = '<div class="search-no-results">No matching students found</div>';
-            elements.studentSearchResults.style.display = 'block';
-            return;
-        }
-
-        students.forEach(student => {
-            const fullName = `${student.student_firstName} ${student.student_lastName}`;
-            const resultItem = document.createElement('div');
-            resultItem.className = 'search-result-item';
-            resultItem.innerHTML = `
-                <div class="student-name">${fullName}</div>
-                <div class="student-class">${student.student_class || 'No class'}</div>
-            `;
-            resultItem.addEventListener('click', () => {
-                selectStudent({
-                    id: student.id,
-                    name: fullName,
-                    className: student.student_class || 'No class'
-                });
-            });
-            elements.studentSearchResults.appendChild(resultItem);
-        });
-
+// Display search results
+function displaySearchResults(students) {
+    elements.studentSearchResults.innerHTML = '';
+    
+    if (!students || students.length === 0) {
+        elements.studentSearchResults.innerHTML = '<div class="search-no-results">No matching students found</div>';
         elements.studentSearchResults.style.display = 'block';
+        return;
     }
+
+    students.forEach(student => {
+        // Use buildFullName to include middle names
+        const fullName = buildFullName(student);
+        
+        const resultItem = document.createElement('div');
+        resultItem.className = 'search-result-item';
+        resultItem.innerHTML = `
+            <div class="student-name">${fullName}</div>
+            <div class="student-class">${student.student_class || 'No class'}</div>
+        `;
+        resultItem.addEventListener('click', () => {
+            selectStudent({
+                id: student.id,
+                name: fullName,
+                className: student.student_class || 'No class'
+            });
+        });
+        elements.studentSearchResults.appendChild(resultItem);
+    });
+
+    elements.studentSearchResults.style.display = 'block';
+}
 
     // Handle student selection
     function selectStudent(student) {
@@ -426,28 +525,33 @@ function initSearch() {
             }
 
             // Add new rows
-            permissions.forEach(permission => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${permission.student_name}</td>
-                    <td>${permission.student_class}</td>
-                    <td>${formatPermissionType(permission.permission_type)}</td>
-                    <td>${formatDateTime(permission.departure_time)}</td>
-                    <td>${formatDateTime(permission.return_time)}</td>
-                    <td><span class="permission-status status-${permission.status}">${permission.status}</span></td>
-                    <td class="permission-actions">
-                        <button class="btn-secondary view-permission" data-id="${permission.id}">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        ${permission.status === 'approved' && !permission.actual_return_time ? 
-                            `<button class="btn-primary record-return" data-id="${permission.id}">
-                                <i class="fas fa-flag"></i>
-                            </button>` : ''
-                        }
-                    </td>
-                `;
-                elements.permissionsList.appendChild(row);
-            });
+// Add new rows
+permissions.forEach(permission => {
+    const row = document.createElement('tr');
+    
+    // Use buildFullName for student display
+    const studentFullName = permission.student_name || buildFullName(permission) || 'N/A';
+    
+    row.innerHTML = `
+        <td>${studentFullName}</td>
+        <td>${permission.student_class}</td>
+        <td>${formatPermissionType(permission.permission_type)}</td>
+        <td>${formatDateTime(permission.departure_time)}</td>
+        <td>${formatDateTime(permission.return_time)}</td>
+        <td><span class="permission-status status-${permission.status}">${permission.status}</span></td>
+        <td class="permission-actions">
+            <button class="btn-secondary view-permission" data-id="${permission.id}">
+                <i class="fas fa-eye"></i>
+            </button>
+            ${permission.status === 'approved' && !permission.actual_return_time ? 
+                `<button class="btn-primary record-return" data-id="${permission.id}">
+                    <i class="fas fa-flag"></i>
+                </button>` : ''
+            }
+        </td>
+    `;
+    elements.permissionsList.appendChild(row);
+});
 
             // Add event listeners
             document.querySelectorAll('.view-permission').forEach(btn => {
@@ -475,59 +579,63 @@ function initSearch() {
     // REMOVED: updatePaginationControls function entirely
 
     // View permission details
-    async function viewPermissionDetails(e) {
-        const permissionId = e.currentTarget.getAttribute('data-id');
-        
-        try {
-            const response = await axios.get(`/api/permissions/${permissionId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const permission = response.data;
 
-            // Populate view modal
-            getElement('viewStudentName').textContent = permission.student_name;
-            getElement('viewStudentClass').textContent = permission.student_class;
-            getElement('viewPermissionType').textContent = formatPermissionType(permission.permission_type);
-            getElement('viewPermissionStatus').textContent = permission.status;
-            getElement('viewDepartureTime').textContent = formatDateTime(permission.departure_time);
-            getElement('viewReturnTime').textContent = formatDateTime(permission.return_time);
-            getElement('editActualReturnTime').value = permission.actual_return_time ? 
-                formatDateTime(permission.actual_return_time, 'Y-m-d H:i') : '';
-            getElement('viewDestination').textContent = permission.destination;
-            getElement('viewReason').textContent = permission.reason;
-            getElement('viewGuardianInfo').textContent = permission.guardian_info;
-            getElement('viewApprovedBy').textContent = permission.approved_by || 'N/A';
-            getElement('viewHistory').textContent = permission.history || 'No history available';
-            getElement('statusComment').value = '';
+// View permission details
+async function viewPermissionDetails(e) {
+    const permissionId = e.currentTarget.getAttribute('data-id');
+    
+    try {
+        const response = await axios.get(`/api/permissions/${permissionId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const permission = response.data;
 
-            // Update status class
-            const statusElement = getElement('viewPermissionStatus');
-            statusElement.className = 'detail-value';
-            statusElement.classList.add(`status-${permission.status.toLowerCase()}`);
+        // Use buildFullName for student display
+        const studentFullName = permission.student_name || buildFullName(permission) || 'N/A';
 
-            // Set up action buttons
-            getElement('saveReturnTimeBtn').onclick = () => saveReturnTime(permissionId);
-            getElement('printPermissionBtn').onclick = () => printPermission(permissionId);
-            getElement('approvePermissionBtn').onclick = () => updatePermissionStatus(permissionId, 'approved');
-            getElement('denyPermissionBtn').onclick = () => updatePermissionStatus(permissionId, 'denied');
+        // Populate view modal
+        getElement('viewStudentName').textContent = studentFullName;
+        getElement('viewStudentClass').textContent = permission.student_class;
+        getElement('viewPermissionType').textContent = formatPermissionType(permission.permission_type);
+        getElement('viewPermissionStatus').textContent = permission.status;
+        getElement('viewDepartureTime').textContent = formatDateTime(permission.departure_time);
+        getElement('viewReturnTime').textContent = formatDateTime(permission.return_time);
+        getElement('editActualReturnTime').value = permission.actual_return_time ? 
+            formatDateTime(permission.actual_return_time, 'Y-m-d H:i') : '';
+        getElement('viewDestination').textContent = permission.destination;
+        getElement('viewReason').textContent = permission.reason;
+        getElement('viewGuardianInfo').textContent = permission.guardian_info;
+        getElement('viewApprovedBy').textContent = permission.approved_by || 'N/A';
+        getElement('viewHistory').textContent = permission.history || 'No history available';
+        getElement('statusComment').value = '';
 
-            // Show/hide action buttons based on current status
-            const statusActions = document.querySelector('.status-actions');
-            if (permission.status === 'pending') {
-                statusActions.style.display = 'flex';
-            } else {
-                statusActions.style.display = 'none';
-            }
+        // Update status class
+        const statusElement = getElement('viewPermissionStatus');
+        statusElement.className = 'detail-value';
+        statusElement.classList.add(`status-${permission.status.toLowerCase()}`);
 
-            // Show modal
-            elements.viewPermissionModal.style.display = 'block';
+        // Set up action buttons
+        getElement('saveReturnTimeBtn').onclick = () => saveReturnTime(permissionId);
+        getElement('printPermissionBtn').onclick = () => printPermission(permissionId);
+        getElement('approvePermissionBtn').onclick = () => updatePermissionStatus(permissionId, 'approved');
+        getElement('denyPermissionBtn').onclick = () => updatePermissionStatus(permissionId, 'denied');
 
-        } catch (error) {
-            console.error('Error loading permission details:', error.response || error);
-            showAlert('Failed to load permission details. Please try again.', 'error');
+        // Show/hide action buttons based on current status
+        const statusActions = document.querySelector('.status-actions');
+        if (permission.status === 'pending') {
+            statusActions.style.display = 'flex';
+        } else {
+            statusActions.style.display = 'none';
         }
-    }
 
+        // Show modal
+        elements.viewPermissionModal.style.display = 'block';
+
+    } catch (error) {
+        console.error('Error loading permission details:', error.response || error);
+        showAlert('Failed to load permission details. Please try again.', 'error');
+    }
+}
     // Save return time
     async function saveReturnTime(permissionId) {
         const actualReturnTime = getElement('editActualReturnTime').value;

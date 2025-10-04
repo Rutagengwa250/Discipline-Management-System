@@ -19,6 +19,7 @@
     "nodemon": "^3.1.9",
     "pdfmake": "^0.2.7",
     "resend": "^6.1.0",
+    "roboto-fontface": "^0.10.0",
     "speakeasy": "^2.0.0"
   },
   "type": "module"
