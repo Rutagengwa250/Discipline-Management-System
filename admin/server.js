@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import pdfmake from 'pdfmake';
 import speakeasy from 'speakeasy';
 import { sendOTPEmail } from './emailService.js';
+import path from 'path';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -66,82 +67,121 @@ const authorizeRole = (roles) => {
 
 // ====================== AUTHENTICATION ROUTES ====================== //
 
+
+
+// ====================== AUTHENTICATION ROUTES ====================== //
+
 app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+    const { username, password } = req.body;
+    
+    console.log('Login attempt:', { username, password: password ? '***' : 'NULL' });
 
-  try {
-    const user = await getUserByUsername(username);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+    try {
+        const user = await getUserByUsername(username);
+        console.log('User found in database:', user);
+        
+        if (!user) {
+            console.log('User not found for username:', username);
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        console.log('Comparing password...');
+        const isPasswordValid = await bcrypt.compare(password, user.admin_password);
+        console.log('Password valid:', isPasswordValid);
+        
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
+        // For admin and director roles, require OTP
+        if (user.role_name === 'admin' || user.role_name === 'director') {
+            console.log('OTP required for role:', user.role_name);
+            
+            const secret = speakeasy.generateSecret({ length: 20 });
+            const otp = speakeasy.totp({
+                secret: secret.base32,
+                encoding: 'base32',
+                step: 300
+            });
+
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+            await storeOTP(user.id, secret.base32, expiresAt);
+
+            console.log('Generated OTP:', otp);
+            console.log('Sending OTP to:', user.email);
+
+            // ✅ FIX: ACTUALLY SEND THE OTP EMAIL
+            try {
+                await sendOTPEmail(user.email, otp);
+                console.log('✅ OTP email sent successfully to:', user.email);
+            } catch (emailError) {
+                console.error('❌ Failed to send OTP email:', emailError);
+                return res.status(500).json({ 
+                    error: 'Failed to send OTP email',
+                    debugOtp: otp // Return OTP for debugging
+                });
+            }
+
+            const tempToken = jwt.sign(
+                { 
+                    userId: user.id,
+                    username: user.admin_name,
+                    role: user.role_name,
+                    needsOTP: true
+                },
+                SECRET_KEY,
+                { expiresIn: '10m' }
+            );
+
+            return res.json({ 
+                message: 'OTP sent to email',
+                tempToken,
+                debugOtp: otp, // Remove in production
+                user: {
+                    id: user.id,
+                    username: user.admin_name,
+                    role: user.role_name
+                }
+            });
+        }
+
+        // For teachers, login directly
+        const token = jwt.sign(
+            { 
+                userId: user.id,
+                username: user.admin_name,
+                role: user.role_name
+            },
+            SECRET_KEY,
+            { expiresIn: '8h' }
+        );
+
+        console.log('Login successful for teacher:', user.admin_name);
+        
+        return res.json({
+            token,
+            redirectUrl: getRedirectUrl(user.role_name),
+            user: {
+                id: user.id,
+                username: user.admin_name,
+                role: user.role_name
+            }
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Login failed: ' + error.message });
     }
-
-    const isPasswordValid = await bcrypt.compare(password, user.admin_password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    await connection.query(
-      'INSERT IGNORE INTO users (user_id, username) VALUES (?, ?)',
-      [user.id, user.admin_name]
-    );
-
-    if (user.role_name === 'admin') {
-      const secret = speakeasy.generateSecret({ length: 20 });
-      const otp = speakeasy.totp({
-        secret: secret.base32,
-        encoding: 'base32',
-        step: 300
-      });
-
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-      await storeOTP(user.id, secret.base32, expiresAt);
-
-      await sendOTPEmail(user.email || 'rutjunior8@gmail.com', otp);
-
-      const tempToken = jwt.sign(
-        { 
-          userId: user.id,
-          username: user.admin_name,
-          role: user.role_name,
-          needsOTP: true
-        },
-        SECRET_KEY,
-        { expiresIn: '10m' }
-      );
-
-      return res.json({ 
-        message: 'OTP sent to admin email',
-        tempToken,
-        debugOtp: otp
-      });
-    }
-
-    const token = jwt.sign(
-      { 
-        userId: user.id,
-        username: user.admin_name,
-        role: user.role_name
-      },
-      SECRET_KEY,
-      { expiresIn: '8h' }
-    );
-
-    return res.json({
-      token,
-      redirectUrl: user.role_name === 'teacher' ? '/teacher-dashboard' : '/dashboard',
-      user: {
-        id: user.id,
-        username: user.admin_name,
-        role: user.role_name
-      }
-    });
-
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
-  }
 });
 
+function getRedirectUrl(role) {
+    switch (role) {
+        case 'teacher': return '/teacher-dashboard.html';
+        case 'director': return '/director-dashboard.html';
+        case 'admin': return '/profile-page.html';
+        default: return '/dashboard.html';
+    }
+}
 app.post('/send-otp', authenticateToken, async (req, res) => {
   try {
     const user = req.user;
@@ -492,6 +532,7 @@ app.get('/student/:name', authenticateToken, async (req, res) => {
 });
 
 // Get student by ID
+// Update the student records endpoint
 app.get('/student/:id/records', authenticateToken, async (req, res) => {
   try {
     const studentId = req.params.id;
@@ -501,23 +542,190 @@ app.get('/student/:id/records', authenticateToken, async (req, res) => {
         f.id,
         f.fault_description AS description,
         f.points_deducted AS points,
-        f.created_at
+        f.created_at,
+        COALESCE(rr.status, 'active') as removal_status,
+        rr.admin_comment as rejection_reason
     FROM faults f
+    LEFT JOIN removal_requests rr ON f.id = rr.fault_id
     WHERE f.student_id = ?
     ORDER BY f.created_at DESC
     `;
     
-    const result = await connection.query(query, [studentId]);
+    const [result] = await connection.query(query, [studentId]);
     
-    res.json(result[0]);
+    res.json(result);
   } catch (error) {
     console.error('Error fetching student records:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+// Add this route to your backend (after the student search route)
+app.get('/api/students/class/:className', authenticateToken, async (req, res) => {
+  try {
+    const className = req.params.className;
+    
+    const [students] = await connection.query(
+      `SELECT 
+        id, 
+        student_firstName, 
+        student_middleName,
+        student_lastName, 
+        student_class,
+        student_conduct
+      FROM student 
+      WHERE student_class = ?
+      ORDER BY student_firstName, student_lastName`,
+      [className]
+    );
 
+    res.json(students);
+  } catch (err) {
+    console.error('Error fetching students by class:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch students',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+// Add route to get available classes
+// Get available classes from student table
+app.get('/api/classes', authenticateToken, async (req, res) => {
+  try {
+    const [classes] = await connection.query(
+      `SELECT DISTINCT student_class 
+       FROM student 
+       WHERE student_class IS NOT NULL AND student_class != ''
+       ORDER BY student_class`
+    );
+
+    const classList = classes.map(c => c.student_class);
+    res.json(classList);
+  } catch (err) {
+    console.error('Error fetching classes:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch classes',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
+
+// Get students by class from student table
+app.get('/api/students/class/:className', authenticateToken, async (req, res) => {
+  try {
+    const className = req.params.className;
+    
+    const [students] = await connection.query(
+      `SELECT 
+        id, 
+        student_firstName, 
+        student_middleName,
+        student_lastName, 
+        student_class,
+        student_conduct
+      FROM student 
+      WHERE student_class = ?
+      ORDER BY student_firstName, student_lastName`,
+      [className]
+    );
+
+    res.json(students);
+  } catch (err) {
+    console.error('Error fetching students by class:', err);
+    res.status(500).json({ 
+      error: 'Failed to fetch students',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+});
 // ====================== FAULT MANAGEMENT ROUTES ====================== //
+// Add this to your backend routes
+app.post('/api/bulk-removal-requests', authenticateToken, authorizeRole(['teacher']), async (req, res) => {
+    const conn = await connection.getConnection();
+    try {
+        await conn.beginTransaction();
+        
+        const { studentIds, faultType, faultDescription, pointsToRemove, reason } = req.body;
+        const teacherId = req.user.userId;
 
+        if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Student IDs array is required' 
+            });
+        }
+
+        if (studentIds.length > 50) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Maximum 50 students allowed per bulk request' 
+            });
+        }
+
+        if (!pointsToRemove || !reason) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Missing required fields' 
+            });
+        }
+
+        const results = [];
+        
+        for (const studentId of studentIds) {
+            let faultId = null;
+            
+            if (faultType && faultType !== 'other') {
+                const [faultResult] = await conn.query(
+                    `INSERT INTO faults 
+                     (student_id, fault_type, fault_description, points_deducted, created_by)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [studentId, faultType, faultDescription, pointsToRemove, teacherId]
+                );
+                faultId = faultResult.insertId;
+            }
+
+            const [request] = await conn.query(
+                `INSERT INTO removal_requests 
+                 (student_id, requester_id, fault_id, points_deducted, reason, status)
+                 VALUES (?, ?, ?, ?, ?, 'pending')`,
+                [studentId, teacherId, faultId, pointsToRemove, reason]
+            );
+
+            const [student] = await conn.query(
+                `SELECT student_firstName, student_lastName FROM student WHERE id = ?`,
+                [studentId]
+            );
+
+            results.push({
+                id: request.insertId,
+                student_firstName: student[0].student_firstName,
+                student_lastName: student[0].student_lastName,
+                fault_description: faultDescription,
+                points_deducted: pointsToRemove,
+                status: 'pending',
+                created_at: new Date().toISOString()
+            });
+        }
+
+        await conn.commit();
+        
+        res.status(201).json({ 
+            success: true,
+            message: `Bulk request submitted successfully for ${results.length} students`,
+            requests: results
+        });
+    } catch (error) {
+        await conn.rollback();
+        console.error('Database error:', error);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to submit bulk request',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    } finally {
+        conn.release();
+    }
+});
 app.post('/add-fault', authenticateToken, async (req, res) => {
   const { studentId, faultDescription, marksToDeduct } = req.body;
 
@@ -809,36 +1017,63 @@ app.patch('/api/removal-requests/:id/status',
 app.get('/api/removal-requests', authenticateToken, async (req, res) => {
   try {
     let query = `
-      SELECT r.*, 
-             CONCAT(s.student_firstName, ' ', s.student_lastName) as student_name,
-             s.student_class,
-             CONCAT(a.admin_name) as requester_name,
-             f.fault_description
-      FROM removal_requests r
-      JOIN student s ON r.student_id = s.id
-      JOIN administrator a ON r.requester_id = a.id
-      LEFT JOIN faults f ON r.fault_id = f.id
-      WHERE 1=1`;
+      SELECT 
+        rr.*, 
+        s.student_firstName, 
+        s.student_lastName, 
+        s.student_class,
+        a.admin_name as requester_name,
+        f.fault_description,
+        f.fault_type
+      FROM removal_requests rr
+      JOIN student s ON rr.student_id = s.id
+      JOIN administrator a ON rr.requester_id = a.id
+      LEFT JOIN faults f ON rr.fault_id = f.id
+      WHERE 1=1
+    `;
     
     const params = [];
     
+    // Filter by status if provided
     if (req.query.status && req.query.status !== 'all') {
-      query += ' AND r.status = ?';
+      query += ' AND rr.status = ?';
       params.push(req.query.status);
     }
     
+    // If user is teacher, only show their requests
     if (req.user.role === 'teacher') {
-      query += ' AND r.requester_id = ?';
+      query += ' AND rr.requester_id = ?';
       params.push(req.user.userId);
     }
     
-    query += ' ORDER BY r.created_at DESC';
+    query += ' ORDER BY rr.created_at DESC';
     
     const [requests] = await connection.query(query, params);
-    res.json(requests);
+    
+    // Format the response to match frontend expectations
+    const formattedRequests = requests.map(request => ({
+      id: request.id,
+      student_name: `${request.student_firstName} ${request.student_lastName}`,
+      student_firstName: request.student_firstName,
+      student_lastName: request.student_lastName,
+      student_class: request.student_class,
+      fault_description: request.fault_description || 'Direct points removal',
+      fault_type: request.fault_type,
+      points_deducted: request.points_deducted,
+      status: request.status,
+      reason: request.reason,
+      admin_comment: request.admin_comment,
+      created_at: request.created_at,
+      requester_name: request.requester_name
+    }));
+    
+    res.json(formattedRequests);
   } catch (error) {
     console.error('Error fetching removal requests:', error);
-    res.status(500).json({ error: 'Failed to fetch requests' });
+    res.status(500).json({ 
+      error: 'Failed to fetch requests',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -1156,6 +1391,8 @@ app.patch('/api/permissions/:id/return', authenticateToken, async (req, res) => 
 
 // ====================== REPORT GENERATION ROUTES ====================== //
 
+// ====================== REPORT GENERATION ROUTES ====================== //
+
 // Report Generation Functions
 function getMostCommonOffense(cases) {
   if (!cases || cases.length === 0) return 'N/A';
@@ -1172,33 +1409,39 @@ async function generateCustomReport(startDate, endDate, classFilter = null) {
   }
   
   let query = `SELECT 
-    faults.student_id, 
-    faults.fault_description, 
-    faults.points_deducted,
-    faults.created_at, 
-    student.student_firstName, 
-    student.student_lastName, 
-    student.student_class 
-  FROM faults 
-  INNER JOIN student ON faults.student_id = student.id 
-  WHERE DATE(faults.created_at) BETWEEN ? AND ?`;
+    f.student_id, 
+    f.fault_description, 
+    f.points_deducted,
+    f.created_at, 
+    s.student_firstName, 
+    s.student_lastName, 
+    s.student_class,
+    COALESCE(rr.status, 'active') as request_status
+  FROM faults f
+  INNER JOIN student s ON f.student_id = s.id 
+  LEFT JOIN removal_requests rr ON f.id = rr.fault_id
+  WHERE DATE(f.created_at) BETWEEN ? AND ?
+  AND (rr.status IS NULL OR rr.status != 'rejected')`;
   
   const params = [startDate, endDate];
   
   if (classFilter) {
-    query += ' AND student.student_class = ?';
+    query += ' AND s.student_class = ?';
     params.push(classFilter);
   }
 
   const [rows] = await connection.query(query, params);
   
+  // Filter out rejected faults in application layer as well
+  const activeFaults = rows.filter(row => row.request_status !== 'rejected');
+  
   return {
-    cases: rows,
-    totalCases: rows.length,
-    totalPointsDeducted: rows.reduce((sum, row) => sum + (row.points_deducted || 0), 0),
+    cases: activeFaults,
+    totalCases: activeFaults.length,
+    totalPointsDeducted: activeFaults.reduce((sum, row) => sum + (row.points_deducted || 0), 0),
     startDate: startDate,
     endDate: endDate,
-    mostCommonOffense: getMostCommonOffense(rows)
+    mostCommonOffense: getMostCommonOffense(activeFaults)
   };
 }
 
@@ -1232,6 +1475,7 @@ async function generateMonthlyReport(classFilter = null) {
   return generateCustomReport(startDate, endDate, classFilter);
 }
 
+// Keep your existing route handlers the same
 app.get('/reports/daily', authenticateToken, async (req, res) => {
   try {
     const classFilter = req.query.class || null;
@@ -1280,7 +1524,6 @@ app.get('/reports/custom', authenticateToken, async (req, res) => {
   }
 });
 
-import path from 'path';
 function generatePDF(data) {
   // Group data by student
   const groupedData = {};
@@ -1523,6 +1766,342 @@ app.get('/api/permissions/:id/pdf', authenticateToken, async (req, res) => {
     console.error('Error generating PDF:', error);
     res.status(500).json({ error: 'Failed to generate PDF' });
   }
+});
+
+// Director Dashboard Statistics
+app.get('/api/director/dashboard-stats', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
+  try {
+    const [totalStudents] = await connection.query('SELECT COUNT(*) as total FROM student');
+    const [totalTeachers] = await connection.query('SELECT COUNT(*) as total FROM administrator WHERE role_id IN (SELECT id FROM user_roles WHERE role_name = "teacher")');
+    const [totalFaults] = await connection.query('SELECT COUNT(*) as total FROM faults WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)');
+    const [pendingRequests] = await connection.query('SELECT COUNT(*) as total FROM removal_requests WHERE status = "pending"');
+
+    const [conductStats] = await connection.query(`
+      SELECT 
+        COUNT(*) as total_students,
+        SUM(CASE WHEN student_conduct >= 32 THEN 1 ELSE 0 END) as excellent,
+        SUM(CASE WHEN student_conduct >= 20 AND student_conduct < 32 THEN 1 ELSE 0 END) as good,
+        SUM(CASE WHEN student_conduct < 20 THEN 1 ELSE 0 END) as poor,
+        AVG(student_conduct) as average_conduct
+      FROM student
+    `);
+
+    // Class-wise statistics
+    const [classStats] = await connection.query(`
+      SELECT 
+        student_class,
+        COUNT(*) as student_count,
+        AVG(student_conduct) as avg_conduct
+      FROM student 
+      GROUP BY student_class 
+      ORDER BY avg_conduct DESC
+    `);
+
+    res.json({
+      overview: {
+        totalStudents: totalStudents[0].total,
+        totalTeachers: totalTeachers[0].total,
+        totalFaults: totalFaults[0].total,
+        pendingRequests: pendingRequests[0].total,
+        ...conductStats[0]
+      },
+      classStats: classStats
+    });
+  } catch (error) {
+    console.error('Director dashboard error:', error);
+    res.status(500).json({ error: 'Failed to load dashboard data' });
+  }
+});
+
+// Recent Activity for Director
+app.get('/api/director/recent-activity', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
+  try {
+    const [recentFaults] = await connection.query(`
+      SELECT 
+        f.*,
+        CONCAT(s.student_firstName, ' ', s.student_lastName) as student_name,
+        s.student_class,
+        a.admin_name as reported_by,
+        DATE_FORMAT(f.created_at, '%Y-%m-%d %H:%i') as formatted_date
+      FROM faults f
+      JOIN student s ON f.student_id = s.id
+      JOIN administrator a ON f.created_by = a.id
+      ORDER BY f.created_at DESC
+      LIMIT 15
+    `);
+
+    const [recentRequests] = await connection.query(`
+      SELECT 
+        rr.*,
+        CONCAT(s.student_firstName, ' ', s.student_lastName) as student_name,
+        s.student_class,
+        a.admin_name as requester_name,
+        DATE_FORMAT(rr.created_at, '%Y-%m-%d %H:%i') as formatted_date,
+        CASE 
+          WHEN rr.status = 'approved' THEN 'success'
+          WHEN rr.status = 'rejected' THEN 'danger'
+          ELSE 'warning'
+        END as status_type
+      FROM removal_requests rr
+      JOIN student s ON rr.student_id = s.id
+      JOIN administrator a ON rr.requester_id = a.id
+      ORDER BY rr.created_at DESC
+      LIMIT 15
+    `);
+
+    res.json({
+      recentFaults,
+      recentRequests
+    });
+  } catch (error) {
+    console.error('Recent activity error:', error);
+    res.status(500).json({ error: 'Failed to load recent activity' });
+  }
+});
+
+// Comprehensive Discipline Report
+app.get('/api/director/discipline-report', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
+  try {
+    const { period = 'monthly', class: classFilter } = req.query;
+    
+    let dateCondition = '';
+    switch (period) {
+      case 'weekly':
+        dateCondition = 'AND f.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+        break;
+      case 'monthly':
+        dateCondition = 'AND f.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+        break;
+      case 'yearly':
+        dateCondition = 'AND f.created_at >= DATE_SUB(NOW(), INTERVAL 365 DAY)';
+        break;
+    }
+
+    let classCondition = '';
+    const params = [];
+    if (classFilter && classFilter !== 'all') {
+      classCondition = 'AND s.student_class = ?';
+      params.push(classFilter);
+    }
+
+    const [classReport] = await connection.query(`
+      SELECT 
+        s.student_class,
+        COUNT(*) as total_students,
+        AVG(s.student_conduct) as avg_conduct,
+        COUNT(f.id) as total_faults,
+        SUM(f.points_deducted) as total_points_lost,
+        COUNT(DISTINCT f.student_id) as students_with_faults
+      FROM student s
+      LEFT JOIN faults f ON s.id = f.student_id ${dateCondition}
+      WHERE 1=1 ${classCondition}
+      GROUP BY s.student_class
+      ORDER BY avg_conduct DESC
+    `, params);
+
+    // Top offenses
+    const [topOffenses] = await connection.query(`
+      SELECT 
+        fault_description,
+        COUNT(*) as occurrence_count,
+        AVG(points_deducted) as avg_points
+      FROM faults
+      WHERE 1=1 ${dateCondition.replace('f.', '')}
+      GROUP BY fault_description
+      ORDER BY occurrence_count DESC
+      LIMIT 10
+    `);
+
+    // Teacher activity
+    const [teacherActivity] = await connection.query(`
+      SELECT 
+        a.admin_name,
+        COUNT(f.id) as faults_logged,
+        COUNT(rr.id) as removal_requests,
+        AVG(f.points_deducted) as avg_points_per_fault
+      FROM administrator a
+      LEFT JOIN faults f ON a.id = f.created_by ${dateCondition}
+      LEFT JOIN removal_requests rr ON a.id = rr.requester_id ${dateCondition.replace('f.', 'rr.')}
+      WHERE a.role_id IN (SELECT id FROM user_roles WHERE role_name = 'teacher')
+      GROUP BY a.id, a.admin_name
+      ORDER BY faults_logged DESC
+    `);
+
+    res.json({
+      classReport,
+      topOffenses,
+      teacherActivity,
+      reportPeriod: period,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Discipline report error:', error);
+    res.status(500).json({ error: 'Failed to generate discipline report' });
+  }
+});
+
+// Student Conduct Trends
+app.get('/api/director/conduct-trends', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
+  try {
+    const { period = 'monthly' } = req.query;
+
+    let groupBy, interval;
+    switch (period) {
+      case 'daily':
+        groupBy = 'DATE(f.created_at)';
+        interval = '7 DAY';
+        break;
+      case 'weekly':
+        groupBy = 'YEARWEEK(f.created_at)';
+        interval = '12 WEEK';
+        break;
+      default: // monthly
+        groupBy = 'DATE_FORMAT(f.created_at, "%Y-%m")';
+        interval = '12 MONTH';
+    }
+
+    const [trends] = await connection.query(`
+      SELECT 
+        ${groupBy} as period,
+        COUNT(f.id) as total_faults,
+        SUM(f.points_deducted) as total_points_deducted,
+        COUNT(DISTINCT f.student_id) as unique_students,
+        (SELECT AVG(student_conduct) FROM student) as avg_conduct_score
+      FROM faults f
+      WHERE f.created_at >= DATE_SUB(NOW(), INTERVAL ${interval})
+      GROUP BY period
+      ORDER BY period ASC
+    `);
+
+    res.json({
+      period,
+      trends,
+      generatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Conduct trends error:', error);
+    res.status(500).json({ error: 'Failed to load conduct trends' });
+  }
+});
+
+// All Students with Detailed Info
+app.get('/api/director/students', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
+  try {
+    const { class: className, page = 1, limit = 50, conduct = 'all' } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT 
+        s.*,
+        COUNT(f.id) as total_faults,
+        COALESCE(SUM(f.points_deducted), 0) as total_points_lost,
+        COUNT(rr.id) as removal_requests_count
+      FROM student s
+      LEFT JOIN faults f ON s.id = f.student_id
+      LEFT JOIN removal_requests rr ON s.id = rr.student_id
+      WHERE 1=1
+    `;
+
+    const params = [];
+
+    if (className && className !== 'all') {
+      query += ' AND s.student_class = ?';
+      params.push(className);
+    }
+
+    if (conduct !== 'all') {
+      if (conduct === 'excellent') {
+        query += ' AND s.student_conduct >= 32';
+      } else if (conduct === 'good') {
+        query += ' AND s.student_conduct >= 20 AND s.student_conduct < 32';
+      } else if (conduct === 'poor') {
+        query += ' AND s.student_conduct < 20';
+      }
+    }
+
+    query += `
+      GROUP BY s.id
+      ORDER BY s.student_class, s.student_firstName, s.student_lastName
+      LIMIT ? OFFSET ?
+    `;
+
+    params.push(parseInt(limit), parseInt(offset));
+
+    const [students] = await connection.query(query, params);
+
+    // Get available classes for filter
+    const [classes] = await connection.query(`
+      SELECT DISTINCT student_class 
+      FROM student 
+      WHERE student_class IS NOT NULL AND student_class != ''
+      ORDER BY student_class
+    `);
+
+    res.json({
+      students,
+      availableClasses: classes.map(c => c.student_class),
+      pagination: {
+        currentPage: parseInt(page),
+        itemsPerPage: parseInt(limit),
+        totalItems: students.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching students for director:', error);
+    res.status(500).json({ error: 'Failed to fetch students' });
+  }
+});
+
+// Student Detailed Profile
+app.get('/api/director/students/:id', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
+  try {
+    const studentId = req.params.id;
+
+    const [student] = await connection.query(`
+      SELECT * FROM student WHERE id = ?
+    `, [studentId]);
+
+    if (student.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const [faults] = await connection.query(`
+      SELECT 
+        f.*,
+        a.admin_name as reported_by,
+        DATE_FORMAT(f.created_at, '%Y-%m-%d %H:%i') as formatted_date
+      FROM faults f
+      JOIN administrator a ON f.created_by = a.id
+      WHERE f.student_id = ?
+      ORDER BY f.created_at DESC
+    `, [studentId]);
+
+    const [removalRequests] = await connection.query(`
+      SELECT 
+        rr.*,
+        a.admin_name as requester_name,
+        DATE_FORMAT(rr.created_at, '%Y-%m-%d %H:%i') as formatted_date
+      FROM removal_requests rr
+      JOIN administrator a ON rr.requester_id = a.id
+      WHERE rr.student_id = ?
+      ORDER BY rr.created_at DESC
+    `, [studentId]);
+
+    res.json({
+      student: student[0],
+      faults,
+      removalRequests
+    });
+  } catch (error) {
+    console.error('Error fetching student details:', error);
+    res.status(500).json({ error: 'Failed to fetch student details' });
+  }
+});
+
+// ====================== SERVE DIRECTOR DASHBOARD ====================== //
+
+app.get('/director-dashboard.html', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'director-dashboard.html'));
 });
 
 // ====================== HOME ROUTES ====================== //

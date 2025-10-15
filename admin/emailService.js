@@ -16,24 +16,40 @@
 
 //     console.log('OTP email sent successfully');
 //   } catch (error) {
+
 //     console.error('Error sending OTP email:', error);
 //     throw error;
 //   }
- //};
+ //};// emailService.js - Add more detailed logging
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+console.log('Email service loading...');
+console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Set' : 'Not set');
+console.log('EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? 'Set' : 'Not set');
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // or your email provider
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
 });
 
+// Verify transporter on startup
+transporter.verify(function (error, success) {
+  if (error) {
+    console.error('Email transporter verification failed:', error);
+  } else {
+    console.log('Email transporter is ready to send messages');
+  }
+});
+
 export const sendOTPEmail = async (email, otp) => {
+  console.log(`Attempting to send OTP ${otp} to ${email} from ${process.env.EMAIL_USER}`);
+  
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
@@ -43,8 +59,10 @@ export const sendOTPEmail = async (email, otp) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
-    console.log('OTP email sent successfully');
+    const result = await transporter.sendMail(mailOptions);
+    console.log('OTP email sent successfully to:', email);
+    console.log('Message ID:', result.messageId);
+    return result;
   } catch (error) {
     console.error('Error sending OTP email:', error);
     throw error;

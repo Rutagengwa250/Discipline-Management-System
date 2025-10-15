@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - School Discipline Management System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --info: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border: #e9ecef;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--light);
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            text-align: center;
+            padding: 0 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo p {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        .nav-links {
+            list-style: none;
+            padding: 0 1rem;
+        }
+
+        .nav-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .nav-links i {
+            margin-right: 1rem;
+            font-size: 1.25rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            background: var(--light);
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: var(--dark);
+            font-size: 1.8rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        /* Controls */
+        .controls {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-group select, 
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #3aa8d0;
+        }
+
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            border-left: 4px solid var(--primary);
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        /* Report Table */
+        .report-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .section-header h2 {
+            color: var(--dark);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .report-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .report-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray);
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .control-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-graduation-cap"></i> EduDiscipline</h1>
+                <p>Reports Dashboard</p>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/director-dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="#" class="active"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                <li><a href="Director.analytics.html" class="active"><i class="fas fa-analytics"></i> Analytics</a></li>
+                <li><a href="Director.analytics.html"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="#"><i class="fas fa-users"></i> Students</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <h1><i class="fas fa-chart-bar"></i> Discipline Reports</h1>
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div>
+                        <div id="user-name">User</div>
+                        <div style="font-size: 0.875rem; color: var(--gray);" id="user-role">Role</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <div class="control-row">
+                    <div class="form-group">
+                        <label for="reportType">Report Type</label>
+                        <select id="reportType">
+                            <option value="daily">Daily Report</option>
+                            <option value="weekly">Weekly Report</option>
+                            <option value="monthly">Monthly Report</option>
+                            <option value="custom">Custom Period</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="classFilter">Class Filter</label>
+                        <select id="classFilter">
+                            <option value="all">All Classes</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="customDates" style="display: none;">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    
+                    <div class="form-group" id="customEndDates" style="display: none;">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate">
+                    </div>
+                </div>
+                
+                <div class="control-row">
+                    <button class="btn btn-primary" id="generateReport">
+                        <i class="fas fa-sync-alt"></i> Generate Report
+                    </button>
+                    <button class="btn btn-success" id="exportPDF">
+                        <i class="fas fa-file-pdf"></i> Download PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-grid" id="summaryGrid">
+                <div class="summary-card">
+                    <div class="summary-value" id="totalCases">0</div>
+                    <div class="summary-label">Total Cases</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="totalPoints">0</div>
+                    <div class="summary-label">Points Deducted</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="mostCommon">N/A</div>
+                    <div class="summary-label">Most Common Offense</div>
+                </div>
+            </div>
+
+            <!-- Report Table -->
+            <div class="report-section">
+                <div class="section-header">
+                    <h2>Detailed Report</h2>
+                    <div id="reportPeriod">Period: Loading...</div>
+                </div>
+                <div class="table-container">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Student</th>
+                                <th>Class</th>
+                                <th>Description</th>
+                                <th>Points</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody">
+                            <tr>
+                                <td colspan="6" class="loading">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading report data...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global variables
+        let currentUser = null;
+        let currentReportData = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthentication();
+            setupEventListeners();
+            loadClasses();
+            generateDefaultReport();
+        });
+
+        // Authentication
+        function checkAuthentication() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const userData = localStorage.getItem('user');
+                if (userData) {
+                    currentUser = JSON.parse(userData);
+                    document.getElementById('user-name').textContent = currentUser.username;
+                    document.getElementById('user-avatar').textContent = currentUser.username.charAt(0).toUpperCase();
+                    document.getElementById('user-role').textContent = currentUser.role;
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                logout();
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('generateReport').addEventListener('click', generateReport);
+            document.getElementById('exportPDF').addEventListener('click', exportPDF);
+            document.getElementById('reportType').addEventListener('change', handleReportTypeChange);
+            document.getElementById('logout-btn').addEventListener('click', logout);
+        }
+
+        function handleReportTypeChange() {
+            const reportType = document.getElementById('reportType').value;
+            const customDates = document.getElementById('customDates');
+            const customEndDates = document.getElementById('customEndDates');
+            
+            if (reportType === 'custom') {
+                customDates.style.display = 'block';
+                customEndDates.style.display = 'block';
+                
+                // Set default dates for custom range (last 7 days)
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - 7);
+                
+                document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+                document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+            } else {
+                customDates.style.display = 'none';
+                customEndDates.style.display = 'none';
+            }
+        }
+
+        // Load classes
+        async function loadClasses() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/classes', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const classes = await response.json();
+                    const classFilter = document.getElementById('classFilter');
+                    
+                    classes.forEach(className => {
+                        const option = document.createElement('option');
+                        option.value = className;
+                        option.textContent = className;
+                        classFilter.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading classes:', error);
+            }
+        }
+
+        // Generate reports
+        async function generateDefaultReport() {
+            await generateReport();
+        }
+
+        async function generateReport() {
+            try {
+                const token = localStorage.getItem('token');
+                const reportType = document.getElementById('reportType').value;
+                const classFilter = document.getElementById('classFilter').value;
+                
+                let url = '/reports/';
+                const params = new URLSearchParams();
+                
+                if (classFilter !== 'all') {
+                    params.append('class', classFilter);
+                }
+
+                if (reportType === 'custom') {
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    if (startDate && endDate) {
+                        url = '/reports/custom';
+                        params.append('startDate', startDate);
+                        params.append('endDate', endDate);
+                    } else {
+                        showError('Please select both start and end dates for custom report');
+                        return;
+                    }
+                } else {
+                    url = `/reports/${reportType}`;
+                }
+
+                // Show loading
+                document.getElementById('reportTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="loading">
+                            <i class="fas fa-spinner fa-spin"></i> Generating report...
+                        </td>
+                    </tr>
+                `;
+
+                const response = await fetch(`${url}?${params.toString()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to generate report: ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentReportData = data;
+                updateReportDisplay(data);
+                
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showError('Failed to generate report: ' + error.message);
+            }
+        }
+
+        function updateReportDisplay(data) {
+            // Update summary cards
+            document.getElementById('totalCases').textContent = data.totalCases || 0;
+            document.getElementById('totalPoints').textContent = data.totalPointsDeducted || 0;
+            document.getElementById('mostCommon').textContent = data.mostCommonOffense || 'N/A';
+
+            // Update period info
+            const periodInfo = data.startDate && data.endDate ? 
+                `Period: ${formatDate(data.startDate)} to ${formatDate(data.endDate)}` : 
+                'Period: Current';
+            document.getElementById('reportPeriod').textContent = periodInfo;
+
+            // Update table
+            updateReportTable(data.cases || []);
+        }
+
+        function updateReportTable(cases) {
+            const tbody = document.getElementById('reportTableBody');
+            
+            if (cases.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--gray); padding: 2rem;">
+                            No cases found for the selected period
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            
+            cases.forEach(caseItem => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatDate(caseItem.created_at)}</td>
+                    <td>${caseItem.student_firstName} ${caseItem.student_lastName}</td>
+                    <td>${caseItem.student_class}</td>
+                    <td>${caseItem.fault_description}</td>
+                    <td>${caseItem.points_deducted}</td>
+                    <td>
+                        <span style="
+                            padding: 0.25rem 0.5rem;
+                            border-radius: 12px;
+                            font-size: 0.75rem;
+                            background: ${getStatusColor(caseItem.request_status)};
+                            color: white;
+                        ">
+                            ${caseItem.request_status || 'active'}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function getStatusColor(status) {
+            switch (status) {
+                case 'active': return '#28a745';
+                case 'pending': return '#ffc107';
+                case 'rejected': return '#dc3545';
+                default: return '#6c757d';
+            }
+        }
+
+        // Export PDF - FIXED VERSION
+        async function exportPDF() {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    showError('Please login again to download PDF');
+                    return;
+                }
+
+                const reportType = document.getElementById('reportType').value;
+                const classFilter = document.getElementById('classFilter').value;
+                
+                let url = `/reports/${reportType}/pdf`;
+                const params = new URLSearchParams();
+                
+                if (classFilter !== 'all') {
+                    params.append('class', classFilter);
+                }
+
+                if (reportType === 'custom') {
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+                    if (startDate && endDate) {
+                        params.append('startDate', startDate);
+                        params.append('endDate', endDate);
+                    }
+                }
+
+                // Create a hidden iframe to download the PDF with authentication
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = `${url}?${params.toString()}`;
+                
+                // Add authorization header through a different approach
+                // We'll use fetch to get the PDF blob and then download it
+                const response = await fetch(`${url}?${params.toString()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        showError('Session expired. Please login again.');
+                        logout();
+                    } else {
+                        throw new Error(`Failed to download PDF: ${response.status}`);
+                    }
+                    return;
+                }
+
+                // Convert response to blob and create download link
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+
+                showSuccess('PDF download started!');
+                
+            } catch (error) {
+                console.error('Error exporting PDF:', error);
+                showError('Failed to download PDF: ' + error.message);
+            }
+        }
+
+        // Utility functions
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        function showError(message) {
+            // Remove existing errors
+            const existingError = document.querySelector('.error');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-circle"></i> ${message}
+            `;
+            
+            document.querySelector('.main-content').insertBefore(errorDiv, document.querySelector('.controls'));
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = `
+                background: #d4edda;
+                color: #155724;
+                padding: 1rem;
+                border-radius: 8px;
+                margin: 1rem 0;
+                border: 1px solid #c3e6cb;
+            `;
+            successDiv.innerHTML = `
+                <i class="fas fa-check-circle"></i> ${message}
+            `;
+            
+            document.querySelector('.main-content').insertBefore(successDiv, document.querySelector('.controls'));
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

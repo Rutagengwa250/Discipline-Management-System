@@ -98,6 +98,9 @@
 
         .request-actions {
             margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .btn-primary {
@@ -109,6 +112,9 @@
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .btn-primary:hover {
@@ -124,6 +130,9 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .btn-secondary:hover {
@@ -162,7 +171,7 @@
             background-color: var(--white);
             border-radius: 0.5rem;
             width: 90%;
-            max-width: 600px;
+            max-width: 800px;
             max-height: 90vh;
             overflow-y: auto;
             padding: 1.5rem;
@@ -243,6 +252,9 @@
             padding: 0.75rem;
             cursor: pointer;
             border-bottom: 1px solid var(--medium-gray);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .search-result:hover {
@@ -261,6 +273,45 @@
             border-radius: 0.375rem;
             margin-bottom: 1.5rem;
             display: none;
+        }
+
+        .selected-students-container {
+            background-color: var(--light-blue);
+            padding: 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 1.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .selected-students-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .selected-student {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background-color: var(--white);
+            border-radius: 0.375rem;
+            border: 1px solid var(--medium-gray);
+        }
+
+        .remove-student {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+        }
+
+        .remove-student:hover {
+            background-color: var(--danger);
+            color: var(--white);
         }
 
         .info-grid {
@@ -422,6 +473,39 @@
             line-height: 1.5;
         }
 
+        .bulk-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .bulk-action-btn {
+            background: none;
+            border: none;
+            color: var(--primary-blue);
+            cursor: pointer;
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+        }
+
+        .bulk-action-btn:hover {
+            background-color: var(--light-blue);
+        }
+
+        .student-count {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
         @media (max-width: 768px) {
             .navBar {
                 padding: 0.75rem 1rem;
@@ -460,6 +544,10 @@
             .detail-label {
                 min-width: 100%;
             }
+
+            .request-actions {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -480,10 +568,15 @@
             <h1>Conduct Point Removal Requests</h1>
             
             <div class="request-actions">
-                <button id="newRequestBtn" class="btn-primary">New Removal Request</button>
+                <button id="newRequestBtn" class="btn-primary">
+                    <i class="fas fa-user-plus"></i> Single Student Request
+                </button>
+                <button id="bulkRequestBtn" class="btn-secondary">
+                    <i class="fas fa-users"></i> Multiple Students Request
+                </button>
             </div>
 
-            <!-- Request Form Modal -->
+            <!-- Single Request Form Modal -->
             <div id="requestModal" class="modal">
                 <div class="modal-content">
                     <span class="close-modal">&times;</span>
@@ -520,7 +613,7 @@
                                 </div>
                                 <div>
                                     <label for="pointsToRemove">Points to Remove</label>
-                                    <input type="number" id="pointsToRemove" name="pointsToRemove" min="1" required>
+                                    <input type="number" id="pointsToRemove" name="pointsToRemove" min="1" max="20" required>
                                 </div>
                             </div>
                         </div>
@@ -542,6 +635,82 @@
                     </form>
                 </div>
             </div>
+
+<!-- Bulk Request Form Modal -->
+<div id="bulkRequestModal" class="modal">
+    <div class="modal-content">
+        <span class="close-bulk-modal">&times;</span>
+        <h2>Submit Bulk Removal Request</h2>
+        <form id="bulkRemovalRequestForm">
+            <!-- Class Selection Section -->
+            <div class="form-group">
+                <label for="classSelection">Select Class *</label>
+                <select id="classSelection" required>
+                    <option value="">Choose a class...</option>
+                    <!-- Classes will be loaded dynamically -->
+                </select>
+            </div>
+
+            <!-- Student Selection Section -->
+            <div class="form-group" id="studentSelectionSection" style="display: none;">
+                <label>Select Students *</label>
+                <div class="students-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 0.375rem; padding: 1rem;">
+                    <div class="bulk-actions" style="margin-bottom: 1rem;">
+                        <button type="button" class="bulk-action-btn" id="selectAllStudents">
+                            <i class="fas fa-check-square"></i> Select All
+                        </button>
+                        <button type="button" class="bulk-action-btn" id="deselectAllStudents">
+                            <i class="fas fa-square"></i> Deselect All
+                        </button>
+                        <span style="margin-left: auto; font-size: 0.875rem; color: #4b5563;">
+                            Selected: <span id="selectedCount">0</span> students
+                        </span>
+                    </div>
+                    <div id="studentsList" class="students-list">
+                        <!-- Students will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fault Details -->
+            <div class="form-group">
+                <label>Fault Details *</label>
+                <div class="fault-inputs">
+                    <div>
+                        <label for="bulkFaultType">Fault Type</label>
+                        <select id="bulkFaultType" required>
+                            <option value="">Select a fault type</option>
+                            <option value="late">Late to Class</option>
+                            <option value="uniform">Uniform Violation</option>
+                            <option value="disruption">Class Disruption</option>
+                            <option value="homework">Missing Homework</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bulkPointsToRemove">Points to Remove</label>
+                        <input type="number" id="bulkPointsToRemove" name="bulkPointsToRemove" min="1" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="bulkFaultDescription">Fault Description *</label>
+                <textarea id="bulkFaultDescription" rows="3" placeholder="Describe the fault..." required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="bulkRemovalReason">Reason for Removal *</label>
+                <textarea id="bulkRemovalReason" rows="3" placeholder="Explain why these faults should be removed..." required></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" id="cancelBulkRequestBtn">Cancel</button>
+                <button type="submit" class="btn-primary">Submit Bulk Request</button>
+            </div>
+        </form>
+    </div>
+</div>
 
             <!-- View Request Modal -->
             <div id="viewRequestModal" class="modal">
@@ -626,345 +795,606 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Authentication check
-            const token = localStorage.getItem('token');
-            const user = JSON.parse(localStorage.getItem('user'));
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Authentication check
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user'));
+        
+        if (!token || !user || user.role !== 'teacher') {
+            window.location.href = '/login.html';
+            return;
+        }
+
+        document.getElementById('usernameDisplay').textContent = user.username;
+
+        // DOM Elements
+        const newRequestBtn = document.getElementById('newRequestBtn');
+        const bulkRequestBtn = document.getElementById('bulkRequestBtn');
+        const requestModal = document.getElementById('requestModal');
+        const bulkRequestModal = document.getElementById('bulkRequestModal');
+        const viewRequestModal = document.getElementById('viewRequestModal');
+        const closeModalBtn = document.querySelector('.close-modal');
+        const closeBulkModalBtn = document.querySelector('.close-bulk-modal');
+        const closeViewModalBtn = document.querySelector('.close-view-modal');
+        const cancelRequestBtn = document.getElementById('cancelRequestBtn');
+        const cancelBulkRequestBtn = document.getElementById('cancelBulkRequestBtn');
+        const closeViewModalBtn2 = document.getElementById('closeViewModalBtn');
+        const removalRequestForm = document.getElementById('removalRequestForm');
+        const bulkRemovalRequestForm = document.getElementById('bulkRemovalRequestForm');
+        const studentSearch = document.getElementById('studentSearch');
+        const studentSearchResults = document.getElementById('studentSearchResults');
+        const selectedStudentId = document.getElementById('selectedStudentId');
+        const studentInfoContainer = document.getElementById('studentInfoContainer');
+        const requestStatusFilter = document.getElementById('requestStatusFilter');
+        const requestsList = document.getElementById('requestsList');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const faultTypeSelect = document.getElementById('faultType');
+        const pointsInput = document.getElementById('pointsToRemove');
+
+        // State for bulk requests
+        let selectedStudents = new Map();
+        let currentClassStudents = [];
+
+        // Event Listeners
+        newRequestBtn.addEventListener('click', openRequestModal);
+        bulkRequestBtn.addEventListener('click', openBulkRequestModal);
+        closeModalBtn.addEventListener('click', closeRequestModal);
+        closeBulkModalBtn.addEventListener('click', closeBulkRequestModal);
+        closeViewModalBtn.addEventListener('click', closeViewRequestModal);
+        closeViewModalBtn2.addEventListener('click', closeViewRequestModal);
+        cancelRequestBtn.addEventListener('click', closeRequestModal);
+        cancelBulkRequestBtn.addEventListener('click', closeBulkRequestModal);
+        removalRequestForm.addEventListener('submit', submitRemovalRequest);
+        bulkRemovalRequestForm.addEventListener('submit', submitBulkRemovalRequest);
+        studentSearch.addEventListener('input', searchStudents);
+        requestStatusFilter.addEventListener('change', loadRequests);
+        logoutBtn.addEventListener('click', logout);
+
+        // Bulk request event listeners
+        document.getElementById('classSelection').addEventListener('change', loadStudentsByClass);
+        document.getElementById('selectAllStudents').addEventListener('click', selectAllStudents);
+        document.getElementById('deselectAllStudents').addEventListener('click', deselectAllStudents);
+
+        faultTypeSelect.addEventListener('change', function() {
+            updatePointsValue(this.value, pointsInput);
+        });
+
+        // Bulk fault type listener
+        document.getElementById('bulkFaultType').addEventListener('change', function() {
+            updatePointsValue(this.value, document.getElementById('bulkPointsToRemove'));
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === requestModal) {
+                closeRequestModal();
+            }
+            if (e.target === bulkRequestModal) {
+                closeBulkRequestModal();
+            }
+            if (e.target === viewRequestModal) {
+                closeViewRequestModal();
+            }
+        });
+        
+        // Initial load
+        loadRequests();
+
+        // Functions
+        function openRequestModal() {
+            resetRequestForm();
+            requestModal.style.display = 'flex';
+        }
+
+        // Bulk request modal function
+        async function openBulkRequestModal() {
+            resetBulkRequestForm();
+            await loadClasses();
+            bulkRequestModal.style.display = 'flex';
+        }
+
+        function closeRequestModal() {
+            requestModal.style.display = 'none';
+        }
+
+        function closeBulkRequestModal() {
+            bulkRequestModal.style.display = 'none';
+        }
+        
+        function closeViewRequestModal() {
+            viewRequestModal.style.display = 'none';
+        }
+
+        function resetRequestForm() {
+            removalRequestForm.reset();
+            selectedStudentId.value = '';
+            studentInfoContainer.style.display = 'none';
+            studentSearchResults.innerHTML = '';
+            studentSearchResults.style.display = 'none';
+        }
+
+        // Bulk request reset function
+        function resetBulkRequestForm() {
+            bulkRemovalRequestForm.reset();
+            selectedStudents.clear();
+            currentClassStudents = [];
+            document.getElementById('studentSelectionSection').style.display = 'none';
+            document.getElementById('studentsList').innerHTML = '';
+            document.getElementById('selectedCount').textContent = '0';
             
-            if (!token || !user || user.role !== 'teacher') {
-                window.location.href = '/login.html';
+            // Reset class selection
+            const classSelect = document.getElementById('classSelection');
+            classSelect.innerHTML = '<option value="">Choose a class...</option>';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+
+        function updatePointsValue(faultType, pointsElement) {
+            switch(faultType) {
+                case 'late':
+                    pointsElement.value = 2;
+                    break;
+                case 'uniform':
+                    pointsElement.value = 3;
+                    break;
+                case 'disruption':
+                    pointsElement.value = 4;
+                    break;
+                case 'homework':
+                    pointsElement.value = 2;
+                    break;
+                case 'other':
+                    pointsElement.value = '';
+                    pointsElement.focus();
+                    break;
+                default:
+                    pointsElement.value = '';
+            }
+        }
+
+        async function searchStudents() {
+            const query = studentSearch.value.trim();
+            
+            if (query.length < 2) {
+                studentSearchResults.innerHTML = '';
+                studentSearchResults.style.display = 'none';
                 return;
             }
 
-            document.getElementById('usernameDisplay').textContent = user.username;
-
-            // DOM Elements
-            const newRequestBtn = document.getElementById('newRequestBtn');
-            const requestModal = document.getElementById('requestModal');
-            const viewRequestModal = document.getElementById('viewRequestModal');
-            const closeModalBtn = document.querySelector('.close-modal');
-            const closeViewModalBtn = document.querySelector('.close-view-modal');
-            const cancelRequestBtn = document.getElementById('cancelRequestBtn');
-            const closeViewModalBtn2 = document.getElementById('closeViewModalBtn');
-            const removalRequestForm = document.getElementById('removalRequestForm');
-            const studentSearch = document.getElementById('studentSearch');
-            const studentSearchResults = document.getElementById('studentSearchResults');
-            const selectedStudentId = document.getElementById('selectedStudentId');
-            const studentInfoContainer = document.getElementById('studentInfoContainer');
-            const requestStatusFilter = document.getElementById('requestStatusFilter');
-            const requestsList = document.getElementById('requestsList');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const faultTypeSelect = document.getElementById('faultType');
-            const pointsInput = document.getElementById('pointsToRemove');
-
-            // Event Listeners
-            newRequestBtn.addEventListener('click', openRequestModal);
-            closeModalBtn.addEventListener('click', closeRequestModal);
-            closeViewModalBtn.addEventListener('click', closeViewRequestModal);
-            closeViewModalBtn2.addEventListener('click', closeViewRequestModal);
-            cancelRequestBtn.addEventListener('click', closeRequestModal);
-            removalRequestForm.addEventListener('submit', submitRemovalRequest);
-            studentSearch.addEventListener('input', searchStudents);
-            requestStatusFilter.addEventListener('change', loadRequests);
-            logoutBtn.addEventListener('click', logout);
-
-            faultTypeSelect.addEventListener('change', function() {
-                switch(this.value) {
-                    case 'late':
-                        pointsInput.value = 2;
-                        break;
-                    case 'uniform':
-                        pointsInput.value = 3;
-                        break;
-                    case 'disruption':
-                        pointsInput.value = 4;
-                        break;
-                    case 'homework':
-                        pointsInput.value = 2;
-                        break;
-                    case 'other':
-                        pointsInput.value = '';
-                        pointsInput.focus();
-                        break;
-                    default:
-                        pointsInput.value = '';
-                }
-            });
-
-            window.addEventListener('click', (e) => {
-                if (e.target === requestModal) {
-                    closeRequestModal();
-                }
-                if (e.target === viewRequestModal) {
-                    closeViewRequestModal();
-                }
-            });
-            
-            // Initial load
-            loadRequests();
-
-            // Functions
-            function openRequestModal() {
-                resetRequestForm();
-                requestModal.style.display = 'flex';
-            }
-
-            function closeRequestModal() {
-                requestModal.style.display = 'none';
-            }
-            
-            function closeViewRequestModal() {
-                viewRequestModal.style.display = 'none';
-            }
-
-            function resetRequestForm() {
-                removalRequestForm.reset();
-                selectedStudentId.value = '';
-                studentInfoContainer.style.display = 'none';
-                studentSearchResults.innerHTML = '';
-                studentSearchResults.style.display = 'none';
-            }
-            
-            function logout() {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/login.html';
-            }
-
-            async function searchStudents() {
-                const query = studentSearch.value.trim();
+            try {
+                const response = await axios.get(`http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 
-                if (query.length < 2) {
-                    studentSearchResults.innerHTML = '';
-                    studentSearchResults.style.display = 'none';
-                    return;
-                }
-
-                try {
-                    const response = await axios.get(`http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    
-                    if (response.data.length > 0) {
-                        displaySearchResults(response.data);
-                        studentSearchResults.style.display = 'block';
-                    } else {
-                        studentSearchResults.innerHTML = '<div class="no-results">No students found</div>';
-                        studentSearchResults.style.display = 'block';
-                    }
-                } catch (error) {
-                    console.error('Error searching students:', error);
-                    studentSearchResults.innerHTML = '<div class="search-error">Error loading students</div>';
+                if (response.data.length > 0) {
+                    displaySearchResults(response.data, studentSearchResults, selectStudent);
+                    studentSearchResults.style.display = 'block';
+                } else {
+                    studentSearchResults.innerHTML = '<div class="no-results">No students found</div>';
                     studentSearchResults.style.display = 'block';
                 }
+            } catch (error) {
+                console.error('Error searching students:', error);
+                studentSearchResults.innerHTML = '<div class="search-error">Error loading students</div>';
+                studentSearchResults.style.display = 'block';
             }
+        }
 
-            function displaySearchResults(students) {
-                studentSearchResults.innerHTML = '';
+        function displaySearchResults(students, container, clickHandler) {
+            container.innerHTML = '';
+            
+            students.forEach(student => {
+                const div = document.createElement('div');
+                div.className = 'search-result';
+                div.innerHTML = `
+                    <i class="fas fa-user-graduate"></i>
+                    ${student.student_firstName} ${student.student_lastName} 
+                    <span class="class-info">${student.student_class}</span>
+                `;
                 
-                students.forEach(student => {
-                    const div = document.createElement('div');
-                    div.className = 'search-result';
-                    div.innerHTML = `
-                        ${student.student_firstName} ${student.student_lastName} 
-                        <span class="class-info">${student.student_class}</span>
-                    `;
-                    
-                    div.addEventListener('click', () => {
-                        selectStudent(student);
-                    });
-                    
-                    studentSearchResults.appendChild(div);
+                div.addEventListener('click', () => {
+                    clickHandler(student);
                 });
+                
+                container.appendChild(div);
+            });
+        }
+
+        function selectStudent(student) {
+            selectedStudentId.value = student.id;
+            studentSearch.value = `${student.student_firstName} ${student.student_lastName}`;
+            studentSearchResults.innerHTML = '';
+            studentSearchResults.style.display = 'none';
+            
+            document.getElementById('studentName').textContent = `${student.student_firstName} ${student.student_lastName}`;
+            document.getElementById('studentClass').textContent = student.student_class;
+            studentInfoContainer.style.display = 'block';
+        }
+
+        // Bulk request functions
+        async function loadClasses() {
+            try {
+                const response = await axios.get('http://localhost:5000/api/classes', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const classSelect = document.getElementById('classSelection');
+                classSelect.innerHTML = '<option value="">Choose a class...</option>';
+                
+                response.data.forEach(className => {
+                    const option = document.createElement('option');
+                    option.value = className;
+                    option.textContent = className;
+                    classSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading classes:', error);
+                alert('Failed to load classes');
+            }
+        }
+
+        async function loadStudentsByClass() {
+            const classSelect = document.getElementById('classSelection');
+            const className = classSelect.value;
+            const studentSelectionSection = document.getElementById('studentSelectionSection');
+            
+            if (!className) {
+                studentSelectionSection.style.display = 'none';
+                selectedStudents.clear();
+                updateSelectedCount();
+                return;
             }
 
-            function selectStudent(student) {
-                selectedStudentId.value = student.id;
-                studentSearch.value = `${student.student_firstName} ${student.student_lastName}`;
-                studentSearchResults.innerHTML = '';
-                studentSearchResults.style.display = 'none';
+            try {
+                const response = await axios.get(`http://localhost:5000/api/students/class/${encodeURIComponent(className)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                currentClassStudents = response.data;
+                displayStudentsList(currentClassStudents);
+                studentSelectionSection.style.display = 'block';
                 
-                document.getElementById('studentName').textContent = `${student.student_firstName} ${student.student_lastName}`;
-                document.getElementById('studentClass').textContent = student.student_class;
-                studentInfoContainer.style.display = 'block';
+            } catch (error) {
+                console.error('Error loading students:', error);
+                alert('Failed to load students for this class');
+                studentSelectionSection.style.display = 'none';
+            }
+        }
+
+        function displayStudentsList(students) {
+            const studentsList = document.getElementById('studentsList');
+            studentsList.innerHTML = '';
+
+            if (students.length === 0) {
+                studentsList.innerHTML = '<div class="no-results">No students found in this class</div>';
+                return;
             }
 
-            async function submitRemovalRequest(e) {
-                e.preventDefault();
-                const submitBtn = e.target.querySelector('button[type="submit"]');
-                
-                try {
-                    submitBtn.disabled = true;
-                    submitBtn.textContent = 'Submitting...';
+            students.forEach(student => {
+                const studentElement = document.createElement('div');
+                studentElement.className = 'student-checkbox-item';
+                studentElement.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    padding: 0.75rem;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 0.375rem;
+                    margin-bottom: 0.5rem;
+                    background-color: ${selectedStudents.has(student.id) ? '#dbeafe' : '#ffffff'};
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                `;
 
-                    const formData = {
-                        studentId: selectedStudentId.value,
-                        faultType: faultTypeSelect.value,
-                        faultDescription: document.getElementById('faultDescription').value.trim(),
-                        pointsToRemove: parseInt(pointsInput.value),
-                        reason: document.getElementById('removalReason').value.trim()
-                    };
+                studentElement.innerHTML = `
+                    <input 
+                        type="checkbox" 
+                        id="student-${student.id}" 
+                        value="${student.id}"
+                        ${selectedStudents.has(student.id) ? 'checked' : ''}
+                        style="margin-right: 0.75rem;"
+                        onchange="toggleStudentSelection(${student.id}, this.checked)"
+                    >
+                    <label for="student-${student.id}" style="flex: 1; cursor: pointer; margin: 0;">
+                        <strong>${student.student_firstName} ${student.student_lastName}</strong>
+                        ${student.student_middleName ? ` ${student.student_middleName}` : ''}
+                        <div style="font-size: 0.875rem; color: #6b7280;">
+                            Class: ${student.student_class} | Conduct Points: ${student.student_conduct || 0}
+                        </div>
+                    </label>
+                `;
 
-                    // Validation
-                    const errors = [];
-                    if (!formData.studentId) errors.push('Please select a student');
-                    if (!formData.faultType) errors.push('Please select a fault type');
-                    if (isNaN(formData.pointsToRemove)) errors.push('Invalid points value');
-                    if (formData.pointsToRemove <= 0) errors.push('Points must be positive');
-                    if (!formData.reason) errors.push('Reason is required');
-                    if (formData.reason.length < 5) errors.push('Reason too short (min 5 chars)');
-
-                    if (errors.length > 0) {
-                        alert(errors.join('\n'));
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = 'Submit Request';
-                        return;
+                // Add click event to the whole div
+                studentElement.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = studentElement.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        toggleStudentSelection(student.id, checkbox.checked);
                     }
+                });
 
-                    const response = await axios.post('http://localhost:5000/api/removal-requests', formData, {
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
+                studentsList.appendChild(studentElement);
+            });
 
-                    if (response.data.success) {
-                        alert('Request submitted successfully!');
-                        closeRequestModal();
-                        loadRequests();
-                    }
-                } catch (error) {
-                    console.error('Submission error:', error);
-                    alert(error.response?.data?.error || error.message || 'Submission failed');
-                } finally {
+            updateSelectedCount();
+        }
+
+        // Global function for the inline onchange handler
+        window.toggleStudentSelection = function(studentId, isSelected) {
+            const student = currentClassStudents.find(s => s.id === studentId);
+            
+            if (isSelected) {
+                selectedStudents.set(studentId, student);
+            } else {
+                selectedStudents.delete(studentId);
+            }
+            
+            // Update visual state
+            const studentElement = document.getElementById(`student-${studentId}`).closest('.student-checkbox-item');
+            if (studentElement) {
+                studentElement.style.backgroundColor = isSelected ? '#dbeafe' : '#ffffff';
+            }
+            
+            updateSelectedCount();
+        };
+
+        function selectAllStudents() {
+            currentClassStudents.forEach(student => {
+                selectedStudents.set(student.id, student);
+            });
+            displayStudentsList(currentClassStudents);
+        }
+
+        function deselectAllStudents() {
+            selectedStudents.clear();
+            displayStudentsList(currentClassStudents);
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = selectedStudents.size;
+        }
+
+        async function submitRemovalRequest(e) {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+
+                const formData = {
+                    studentId: selectedStudentId.value,
+                    faultType: faultTypeSelect.value,
+                    faultDescription: document.getElementById('faultDescription').value.trim(),
+                    pointsToRemove: parseInt(pointsInput.value),
+                    reason: document.getElementById('removalReason').value.trim()
+                };
+
+                // Validation
+                const errors = validateRequestForm(formData);
+                if (errors.length > 0) {
+                    alert(errors.join('\n'));
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Submit Request';
-                }
-            }
-
-            async function loadRequests() {
-                try {
-                    const status = document.getElementById('requestStatusFilter').value;
-                    const url = `http://localhost:5000/api/removal-requests${status === 'all' ? '' : `?status=${status}`}`;
-
-                    const response = await axios.get(url, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-
-                    displayRequests(response.data);
-                } catch (error) {
-                    console.error('Error loading requests:', error);
-                    document.getElementById('requestsList').innerHTML = 
-                        '<tr><td colspan="6" class="error">Failed to load requests</td></tr>';
-                }
-            }
-
-            function displayRequests(requests) {
-                const tbody = document.getElementById('requestsList');
-                tbody.innerHTML = '';
-
-                if (requests.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6">No requests found</td></tr>';
                     return;
                 }
 
-                requests.forEach(request => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${request.student_name || 
-                             `${request.student_firstName || ''} ${request.student_lastName || ''}`.trim() || 
-                             'Unknown Student'}</td>
-                        <td>${request.fault_description || 'N/A'}</td>
-                        <td class="points">${request.points_deducted ? `-${request.points_deducted}` : '0'}</td>
-                        <td class="status status-${request.status}">${request.status}</td>
-                        <td>${new Date(request.created_at).toLocaleDateString()}</td>
-                        <td>
-                            <button class="btn-view" data-id="${request.id}">View</button>
-                            ${request.status === 'pending' ? `
-                            <button class="btn-cancel" data-id="${request.id}">Cancel</button>
-                            ` : ''}
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-
-                document.querySelectorAll('.btn-cancel').forEach(btn => {
-                    btn.addEventListener('click', cancelRequest);
-                });
-                
-                document.querySelectorAll('.btn-view').forEach(btn => {
-                    btn.addEventListener('click', viewRequestDetails);
-                });
-            }
-
-            async function viewRequestDetails(e) {
-                const requestId = e.target.getAttribute('data-id');
-                
-                try {
-                    const response = await axios.get(`http://localhost:5000/api/removal-requests/${requestId}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-
-                    const request = response.data;
-                    
-                    document.getElementById('viewStudentName').textContent = 
-                        `${request.student_firstName || ''} ${request.student_lastName || ''}`.trim() || 'Unknown Student';
-                    document.getElementById('viewFaultType').textContent = request.fault_type || 'N/A';
-                    document.getElementById('viewFaultDescription').textContent = request.fault_description || 'No description';
-                    document.getElementById('viewPoints').textContent = request.points_deducted ? `-${request.points_deducted}` : '0';
-                    document.getElementById('viewReason').textContent = request.reason || 'No reason provided';
-                    
-                    const statusElement = document.getElementById('viewStatus');
-                    statusElement.textContent = request.status;
-                    statusElement.className = `status status-${request.status}`;
-                    
-                    document.getElementById('viewDate').textContent = 
-                        new Date(request.created_at).toLocaleDateString();
-                        
-                    const adminResponseRow = document.getElementById('adminResponseRow');
-                    const viewAdminComment = document.getElementById('viewAdminComment');
-                    
-                    if (request.admin_comment) {
-                        viewAdminComment.textContent = request.admin_comment;
-                        adminResponseRow.style.display = 'block';
-                    } else {
-                        adminResponseRow.style.display = 'none';
+                const response = await axios.post('http://localhost:5000/api/removal-requests', formData, {
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
                     }
-                    
-                    viewRequestModal.style.display = 'flex';
-                    
-                } catch (error) {
-                    console.error('Error loading request details:', error);
-                    alert('Failed to load request details');
+                });
+
+                if (response.data.success) {
+                    alert('Request submitted successfully!');
+                    closeRequestModal();
+                    loadRequests();
                 }
+            } catch (error) {
+                console.error('Submission error:', error);
+                alert(error.response?.data?.error || error.message || 'Submission failed');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Request';
+            }
+        }
+
+        // Bulk request submission
+        async function submitBulkRemovalRequest(e) {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            try {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+
+                const formData = {
+                    studentIds: Array.from(selectedStudents.keys()),
+                    faultType: document.getElementById('bulkFaultType').value,
+                    faultDescription: document.getElementById('bulkFaultDescription').value.trim(),
+                    pointsToRemove: parseInt(document.getElementById('bulkPointsToRemove').value),
+                    reason: document.getElementById('bulkRemovalReason').value.trim()
+                };
+
+                // Validation
+                const errors = validateBulkRequestForm(formData);
+                if (errors.length > 0) {
+                    alert(errors.join('\n'));
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Bulk Request';
+                    return;
+                }
+
+                const response = await axios.post('http://localhost:5000/api/bulk-removal-requests', formData, {
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.data.success) {
+                    alert(`Bulk request submitted successfully for ${formData.studentIds.length} students!`);
+                    closeBulkRequestModal();
+                    loadRequests();
+                }
+            } catch (error) {
+                console.error('Bulk submission error:', error);
+                alert(error.response?.data?.error || error.message || 'Bulk submission failed');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Bulk Request';
+            }
+        }
+
+        function validateRequestForm(formData) {
+            const errors = [];
+            if (!formData.studentId) errors.push('Please select a student');
+            if (!formData.faultType) errors.push('Please select a fault type');
+            if (isNaN(formData.pointsToRemove)) errors.push('Invalid points value');
+            if (formData.pointsToRemove <= 0) errors.push('Points must be positive');
+            if (!formData.reason) errors.push('Reason is required');
+            if (formData.reason.length < 5) errors.push('Reason too short (min 5 chars)');
+            return errors;
+        }
+
+        function validateBulkRequestForm(formData) {
+            const errors = [];
+            if (formData.studentIds.length === 0) errors.push('Please select at least one student');
+            if (formData.studentIds.length > 50) errors.push('Maximum 50 students allowed per bulk request');
+            if (!formData.faultType) errors.push('Please select a fault type');
+            if (isNaN(formData.pointsToRemove)) errors.push('Invalid points value');
+            if (formData.pointsToRemove <= 0) errors.push('Points must be positive');
+            if (!formData.reason) errors.push('Reason is required');
+            if (formData.reason.length < 5) errors.push('Reason too short (min 5 chars)');
+            return errors;
+        }
+
+        async function loadRequests() {
+            try {
+                const status = document.getElementById('requestStatusFilter').value;
+                const url = `http://localhost:5000/api/removal-requests${status === 'all' ? '' : `?status=${status}`}`;
+
+                const response = await axios.get(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                displayRequests(response.data);
+            } catch (error) {
+                console.error('Error loading requests:', error);
+                document.getElementById('requestsList').innerHTML = 
+                    '<tr><td colspan="6" class="error">Failed to load requests</td></tr>';
+            }
+        }
+
+        function displayRequests(requests) {
+            const tbody = document.getElementById('requestsList');
+            tbody.innerHTML = '';
+
+            if (requests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">No requests found</td></tr>';
+                return;
             }
 
-            async function cancelRequest(e) {
-                const requestId = e.target.getAttribute('data-id');
-                if (!confirm('Are you sure you want to cancel this request?')) return;
+            requests.forEach(request => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${request.student_name || 
+                         `${request.student_firstName || ''} ${request.student_lastName || ''}`.trim() || 
+                         'Unknown Student'}</td>
+                    <td>${request.fault_description || 'N/A'}</td>
+                    <td class="points">${request.points_deducted ? `-${request.points_deducted}` : '0'}</td>
+                    <td class="status status-${request.status}">${request.status}</td>
+                    <td>${new Date(request.created_at).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn-view" data-id="${request.id}">View</button>
+                        ${request.status === 'pending' ? `
+                        <button class="btn-cancel" data-id="${request.id}">Cancel</button>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.querySelectorAll('.btn-cancel').forEach(btn => {
+                btn.addEventListener('click', cancelRequest);
+            });
+            
+            document.querySelectorAll('.btn-view').forEach(btn => {
+                btn.addEventListener('click', viewRequestDetails);
+            });
+        }
+
+        async function viewRequestDetails(e) {
+            const requestId = e.target.getAttribute('data-id');
+            
+            try {
+                const response = await axios.get(`http://localhost:5000/api/removal-requests/${requestId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const request = response.data;
                 
-                try {
-                    const response = await axios.delete(`http://localhost:5000/api/teacher/removal-requests/${requestId}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                document.getElementById('viewStudentName').textContent = 
+                    `${request.student_firstName || ''} ${request.student_lastName || ''}`.trim() || 'Unknown Student';
+                document.getElementById('viewFaultType').textContent = request.fault_type || 'N/A';
+                document.getElementById('viewFaultDescription').textContent = request.fault_description || 'No description';
+                document.getElementById('viewPoints').textContent = request.points_deducted ? `-${request.points_deducted}` : '0';
+                document.getElementById('viewReason').textContent = request.reason || 'No reason provided';
+                
+                const statusElement = document.getElementById('viewStatus');
+                statusElement.textContent = request.status;
+                statusElement.className = `status status-${request.status}`;
+                
+                document.getElementById('viewDate').textContent = 
+                    new Date(request.created_at).toLocaleDateString();
                     
-                    if (response.data.success) {
-                        alert('Request canceled successfully');
-                        loadRequests();
-                    } else {
-                        alert(response.data.error || 'Failed to cancel request');
-                    }
-                } catch (error) {
-                    console.error('Error canceling request:', {
-                        error: error.response?.data || error.message
-                    });
-                    alert(error.response?.data?.error || 
-                         error.response?.data?.message || 
-                         'Failed to cancel request');
+                const adminResponseRow = document.getElementById('adminResponseRow');
+                const viewAdminComment = document.getElementById('viewAdminComment');
+                
+                if (request.admin_comment) {
+                    viewAdminComment.textContent = request.admin_comment;
+                    adminResponseRow.style.display = 'block';
+                } else {
+                    adminResponseRow.style.display = 'none';
                 }
+                
+                viewRequestModal.style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error loading request details:', error);
+                alert('Failed to load request details');
             }
-        });
-    </script>
+        }
+
+        async function cancelRequest(e) {
+            const requestId = e.target.getAttribute('data-id');
+            if (!confirm('Are you sure you want to cancel this request?')) return;
+            
+            try {
+                const response = await axios.delete(`http://localhost:5000/api/teacher/removal-requests/${requestId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.data.success) {
+                    alert('Request canceled successfully');
+                    loadRequests();
+                } else {
+                    alert(response.data.error || 'Failed to cancel request');
+                }
+            } catch (error) {
+                console.error('Error canceling request:', {
+                    error: error.response?.data || error.message
+                });
+                alert(error.response?.data?.error || 
+                     error.response?.data?.message || 
+                     'Failed to cancel request');
+            }
+        }
+    });
+</script>
 </body>
 </html>

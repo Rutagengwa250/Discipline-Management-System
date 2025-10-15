@@ -184,27 +184,36 @@ function displayStudentRecords(records, studentCard) {
             // Format date
             const recordDate = new Date(record.date || record.created_at).toLocaleDateString();
             
-            // Determine status class based on record type or status
+            // Determine status based on removal_status
             let statusClass = 'status-neutral';
-            if (record.status === 'approved' || record.type === 'positive') {
-                statusClass = 'status-positive';
-            } else if (record.status === 'rejected' || record.type === 'negative') {
-                statusClass = 'status-negative';
+            let statusText = 'Active';
+            
+            if (record.removal_status === 'rejected') {
+                statusClass = 'status-rejected';
+                statusText = 'Rejected';
+            } else if (record.removal_status === 'approved') {
+                statusClass = 'status-approved';
+                statusText = 'Removed';
+            } else if (record.removal_status === 'pending') {
+                statusClass = 'status-pending';
+                statusText = 'Pending Review';
             }
             
             recordItem.innerHTML = `
                 <div class="record-header">
                     <span class="record-date">${recordDate}</span>
                     <span class="record-status ${statusClass}">
-                        ${record.status || record.type || 'record'}
+                        ${statusText}
                     </span>
                 </div>
                 <div class="record-details">
                     <p class="record-description">${record.description || record.fault_description || 'No description available'}</p>
                     <div class="record-points">
                         ${record.points ? (record.points > 0 ? `-${record.points}` : record.points) : '0'} points
+                        ${record.removal_status === 'rejected' ? ' <span class="rejected-badge">(Rejected)</span>' : ''}
                     </div>
                 </div>
+                ${record.rejection_reason ? `<div class="rejection-reason"><strong>Rejection Reason:</strong> ${record.rejection_reason}</div>` : ''}
                 ${record.teacher ? `<div class="record-teacher">By: ${record.teacher}</div>` : ''}
             `;
             
@@ -227,26 +236,36 @@ function displayStudentRecords(records, studentCard) {
                     
                     const recordDate = new Date(record.date || record.created_at).toLocaleDateString();
                     
+                    // Determine status based on removal_status
                     let statusClass = 'status-neutral';
-                    if (record.status === 'approved' || record.type === 'positive') {
-                        statusClass = 'status-positive';
-                    } else if (record.status === 'rejected' || record.type === 'negative') {
-                        statusClass = 'status-negative';
+                    let statusText = 'Active';
+                    
+                    if (record.removal_status === 'rejected') {
+                        statusClass = 'status-rejected';
+                        statusText = 'Rejected';
+                    } else if (record.removal_status === 'approved') {
+                        statusClass = 'status-approved';
+                        statusText = 'Removed';
+                    } else if (record.removal_status === 'pending') {
+                        statusClass = 'status-pending';
+                        statusText = 'Pending Review';
                     }
                     
                     recordItem.innerHTML = `
                         <div class="record-header">
                             <span class="record-date">${recordDate}</span>
                             <span class="record-status ${statusClass}">
-                                ${record.status || record.type || 'record'}
+                                ${statusText}
                             </span>
                         </div>
                         <div class="record-details">
                             <p class="record-description">${record.description || record.fault_description || 'No description available'}</p>
                             <div class="record-points">
                                 ${record.points ? (record.points > 0 ? `-${record.points}` : record.points) : '0'} points
+                                ${record.removal_status === 'rejected' ? ' <span class="rejected-badge">(Rejected)</span>' : ''}
                             </div>
                         </div>
+                        ${record.rejection_reason ? `<div class="rejection-reason"><strong>Rejection Reason:</strong> ${record.rejection_reason}</div>` : ''}
                         ${record.teacher ? `<div class="record-teacher">By: ${record.teacher}</div>` : ''}
                     `;
                     

@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Director Dashboard - School Discipline Management System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --info: #4895ef;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --gray: #6c757d;
+            --border: #e9ecef;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 2rem 0;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            text-align: center;
+            padding: 0 1.5rem 2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo p {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        .nav-links {
+            list-style: none;
+            padding: 0 1rem;
+        }
+
+        .nav-links li {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .nav-links i {
+            margin-right: 1rem;
+            font-size: 1.25rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            background: var(--light);
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card.students { border-left-color: var(--primary); }
+        .stat-card.teachers { border-left-color: var(--secondary); }
+        .stat-card.faults { border-left-color: var(--warning); }
+        .stat-card.requests { border-left-color: var(--info); }
+
+        .stat-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-card.students .stat-icon { background: var(--primary); }
+        .stat-card.teachers .stat-icon { background: var(--secondary); }
+        .stat-card.faults .stat-icon { background: var(--warning); }
+        .stat-card.requests .stat-icon { background: var(--info); }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+      .chart-card {
+        position: relative;
+        min-height: 300px;
+    }
+    
+    .chart-card canvas {
+        max-width: 100%;
+        height: auto !important;
+    }
+    
+    /* Ensure proper chart container sizing */
+    #conductChart, #classChart {
+        width: 100% !important;
+        height: 250px !important;
+    }
+        /* Recent Activity */
+        .activity-section {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .section-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .activity-icon.fault { background: var(--warning); }
+        .activity-icon.request { background: var(--info); }
+        .activity-icon.approved { background: var(--success); }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-details {
+            font-size: 0.875rem;
+            color: var(--gray);
+        }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .action-btn {
+            background: white;
+            border: 2px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            text-decoration: none;
+            color: var(--dark);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(67, 97, 238, 0.15);
+        }
+
+        .action-btn i {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .action-btn span {
+            display: block;
+            font-weight: 600;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-graduation-cap"></i>DMS</h1>
+                <p>Director Dashboard</p>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" class="active"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="#"><i class="fas fa-users"></i> Students</a></li>
+                <li><a href="Director.analytics.html"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="Director-report.html"><i class="fas fa-file-alt"></i> Reports</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <h2>Director Dashboard</h2>
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">D</div>
+                    <div>
+                        <div id="user-name">Loading...</div>
+                        <div style="font-size: 0.875rem; color: var(--gray);">Director</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card students">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value" id="total-students">0</div>
+                            <div class="stat-label">Total Students</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card teachers">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value" id="total-teachers">0</div>
+                            <div class="stat-label">Teachers</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card faults">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value" id="total-faults">0</div>
+                            <div class="stat-label">Recent Faults</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card requests">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value" id="pending-requests">0</div>
+                            <div class="stat-label">Pending Requests</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Conduct Distribution</h3>
+                    </div>
+                    <canvas id="conductChart" height="250"></canvas>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Class Performance</h3>
+                    </div>
+                    <canvas id="classChart" height="250"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="activity-section">
+                <div class="section-header">
+                    <h3>Recent Activity</h3>
+                    <button class="btn btn-outline-primary" id="refresh-activity">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+                <div class="activity-list" id="activity-list">
+                    <!-- Activity items will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <div class="action-btn" onclick="generateReport('weekly')">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Weekly Report</span>
+                </div>
+                <div class="action-btn" onclick="viewStudents()">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>View Students</span>
+                </div>
+                <div class="action-btn" onclick="viewAnalytics()">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Analytics</span>
+                </div>
+                <div class="action-btn" onclick="manageTeachers()">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Manage Staff</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+    // Global variables
+    let currentUser = null;
+    let conductChart = null;
+    let classChart = null;
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuthentication();
+        loadDashboardData();
+        setupEventListeners();
+    });
+
+    // Check if user is authenticated - FIXED VERSION
+    function checkAuthentication() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.log('No token found, redirecting to login');
+            window.location.href = '/';
+            return;
+        }
+
+        try {
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                currentUser = JSON.parse(userData);
+                document.getElementById('user-name').textContent = currentUser.username;
+                document.getElementById('user-avatar').textContent = currentUser.username.charAt(0).toUpperCase();
+            } else {
+                console.log('No user data found');
+                logout();
+            }
+        } catch (error) {
+            console.error('Error parsing user data:', error);
+            logout();
+        }
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+        document.getElementById('logout-btn').addEventListener('click', logout);
+        document.getElementById('refresh-activity').addEventListener('click', loadRecentActivity);
+    }
+
+    // Load dashboard data - FIXED
+    async function loadDashboardData() {
+        try {
+            const token = localStorage.getItem('token');
+            console.log('Loading dashboard data...');
+
+            const response = await fetch('/api/director/dashboard-stats', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.status === 401) {
+                console.log('Token expired, logging out');
+                logout();
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('Dashboard data loaded:', data);
+            
+            updateStats(data.overview);
+            createCharts(data.overview, data.classStats);
+            loadRecentActivity();
+            
+        } catch (error) {
+            console.error('Error loading dashboard:', error);
+            showError('Failed to load dashboard data: ' + error.message);
+        }
+    }
+
+    // Update statistics cards
+    function updateStats(stats) {
+        document.getElementById('total-students').textContent = stats.totalStudents ? stats.totalStudents.toLocaleString() : '0';
+        document.getElementById('total-teachers').textContent = stats.totalTeachers ? stats.totalTeachers.toLocaleString() : '0';
+        document.getElementById('total-faults').textContent = stats.totalFaults ? stats.totalFaults.toLocaleString() : '0';
+        document.getElementById('pending-requests').textContent = stats.pendingRequests ? stats.pendingRequests.toLocaleString() : '0';
+    }
+
+    // Create charts - FIXED VERSION
+    // Chart management variables
+    let chartsInitialized = false;
+    let chartUpdateInProgress = false;
+
+    // Create charts - FIXED with proper initialization check
+    function createCharts(overview, classStats) {
+        // Prevent multiple simultaneous chart updates
+        if (chartUpdateInProgress) {
+            console.log('Chart update already in progress, skipping...');
+            return;
+        }
+        
+        chartUpdateInProgress = true;
+        console.log('Creating/updating charts with data:', { overview, classStats });
+        
+        const conductCtx = document.getElementById('conductChart');
+        const classCtx = document.getElementById('classChart');
+
+        // Only destroy charts if they already exist and we need to recreate them
+        if (conductChart && chartsInitialized) {
+            console.log('Destroying existing conduct chart');
+            conductChart.destroy();
+            conductChart = null;
+        }
+        
+        if (classChart && chartsInitialized) {
+            console.log('Destroying existing class chart');
+            classChart.destroy();
+            classChart = null;
+        }
+
+        // Conduct Distribution Chart
+        if (conductCtx) {
+            try {
+                conductChart = new Chart(conductCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Excellent (32+)', 'Good (20-31)', 'Poor (<20)'],
+                        datasets: [{
+                            data: [
+                                overview.excellent || 0, 
+                                overview.good || 0, 
+                                overview.poor || 0
+                            ],
+                            backgroundColor: [
+                                '#4cc9f0',
+                                '#4361ee', 
+                                '#f72585'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%',
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeOutQuart'
+                        }
+                    }
+                });
+                console.log('Conduct chart created successfully');
+            } catch (error) {
+                console.error('Error creating conduct chart:', error);
+            }
+        }
+
+        // Class Performance Chart
+        if (classCtx) {
+            try {
+                if (classStats && classStats.length > 0) {
+                    classChart = new Chart(classCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: classStats.map(c => c.student_class || 'Unknown'),
+                            datasets: [{
+                                label: 'Average Conduct Score',
+                                data: classStats.map(c => c.avg_conduct || 0),
+                                backgroundColor: '#4361ee',
+                                borderColor: '#3a56d4',
+                                borderWidth: 1,
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    max: 40,
+                                    grid: {
+                                        drawBorder: false
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Conduct Score'
+                                    }
+                                },
+                                x: {
+                                    grid: {
+                                        display: false
+                                    },
+                                    title: {
+                                        display: true,
+                                        text: 'Class'
+                                    }
+                                }
+                            },
+                            animation: {
+                                duration: 1000,
+                                easing: 'easeOutQuart'
+                            }
+                        }
+                    });
+                    console.log('Class chart created successfully');
+                } else {
+                    // Clear and show message if no class data
+                    const ctx = classCtx.getContext('2d');
+                    ctx.clearRect(0, 0, classCtx.width, classCtx.height);
+                    ctx.font = '14px Inter, sans-serif';
+                    ctx.fillStyle = '#6c757d';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('No class data available', classCtx.width / 2, classCtx.height / 2);
+                }
+            } catch (error) {
+                console.error('Error creating class chart:', error);
+            }
+        }
+
+        chartsInitialized = true;
+        chartUpdateInProgress = false;
+    }
+
+    // Load dashboard data - FIXED with debouncing
+    let dashboardLoadTimeout = null;
+    async function loadDashboardData() {
+        // Clear any pending timeout to prevent multiple rapid calls
+        if (dashboardLoadTimeout) {
+            clearTimeout(dashboardLoadTimeout);
+        }
+
+        // Use a timeout to debounce rapid calls
+        dashboardLoadTimeout = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                console.log('Loading dashboard data...');
+
+                const response = await fetch('/api/director/dashboard-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 401) {
+                    console.log('Token expired, logging out');
+                    logout();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Dashboard data loaded:', data);
+                
+                updateStats(data.overview);
+                createCharts(data.overview, data.classStats);
+                loadRecentActivity();
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showError('Failed to load dashboard data: ' + error.message);
+            }
+        }, 100); // 100ms debounce delay
+    }
+
+    // Update the DOMContentLoaded to prevent multiple initializations
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Director dashboard initializing...');
+        checkAuthentication();
+        
+        // Use a small delay to ensure DOM is fully ready
+        setTimeout(() => {
+            loadDashboardData();
+            setupEventListeners();
+        }, 100);
+    });
+
+    // Also add a resize handler that doesn't recreate charts unnecessarily
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (conductChart) {
+                conductChart.resize();
+            }
+            if (classChart) {
+                classChart.resize();
+            }
+        }, 250);
+    });
+    // Load recent activity - FIXED
+    async function loadRecentActivity() {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/director/recent-activity', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.status === 401) {
+                logout();
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch recent activity');
+            }
+
+            const data = await response.json();
+            displayRecentActivity(data);
+        } catch (error) {
+            console.error('Error loading recent activity:', error);
+            if (error.message.includes('401')) {
+                logout();
+            } else {
+                showError('Failed to load recent activity');
+            }
+        }
+    }
+
+    // Display recent activity
+    function displayRecentActivity(data) {
+        const activityList = document.getElementById('activity-list');
+        if (!activityList) return;
+        
+        activityList.innerHTML = '';
+
+        // Check if we have data
+        if (!data.recentFaults && !data.recentRequests) {
+            activityList.innerHTML = `
+                <div class="activity-item">
+                    <div class="activity-content">
+                        <div class="activity-title">No recent activity</div>
+                        <div class="activity-details">Activity will appear here as it happens</div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // Combine and sort activities by date
+        const allActivities = [
+            ...(data.recentFaults || []).map(fault => ({
+                type: 'fault',
+                title: `Fault Reported: ${fault.student_name || 'Unknown Student'}`,
+                details: `${fault.fault_description || 'No description'} - ${fault.points_deducted || 0} points`,
+                time: fault.formatted_date || new Date().toLocaleString(),
+                class: fault.student_class || 'Unknown',
+                reportedBy: fault.reported_by || 'Unknown'
+            })),
+            ...(data.recentRequests || []).map(request => ({
+                type: request.status === 'approved' ? 'approved' : 'request',
+                title: `Removal Request: ${request.student_name || 'Unknown Student'}`,
+                details: `${request.reason || 'No reason'} - ${request.points_deducted || 0} points`,
+                time: request.formatted_date || new Date().toLocaleString(),
+                class: request.student_class || 'Unknown',
+                status: request.status,
+                requester: request.requester_name || 'Unknown'
+            }))
+        ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 10);
+
+        if (allActivities.length === 0) {
+            activityList.innerHTML = `
+                <div class="activity-item">
+                    <div class="activity-content">
+                        <div class="activity-title">No recent activity</div>
+                        <div class="activity-details">Activity will appear here as it happens</div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        allActivities.forEach(activity => {
+            const activityItem = document.createElement('div');
+            activityItem.className = 'activity-item';
+
+            let iconClass = 'activity-icon ';
+            let icon = '';
+
+            switch (activity.type) {
+                case 'fault':
+                    iconClass += 'fault';
+                    icon = 'fa-exclamation-triangle';
+                    break;
+                case 'approved':
+                    iconClass += 'approved';
+                    icon = 'fa-check-circle';
+                    break;
+                case 'request':
+                    iconClass += 'request';
+                    icon = 'fa-clock';
+                    break;
+            }
+
+            activityItem.innerHTML = `
+                <div class="${iconClass}">
+                    <i class="fas ${icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">${activity.title}</div>
+                    <div class="activity-details">${activity.details} • Class: ${activity.class}</div>
+                </div>
+                <div class="activity-time">${activity.time}</div>
+            `;
+
+            activityList.appendChild(activityItem);
+        });
+    }
+
+    // Quick action functions
+    function generateReport(type) {
+        alert(`Generating ${type} report...`);
+    }
+
+    function viewStudents() {
+        alert('Opening students page...');
+    }
+
+    function viewAnalytics() {
+        alert('Opening analytics...');
+    }
+
+    function manageTeachers() {
+        alert('Opening staff management...');
+    }
+
+    // Logout function
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+    }
+
+    // Utility functions
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f72585;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+        `;
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+
+        setTimeout(() => {
+            errorDiv.remove();
+        }, 5000);
+    }
+
+    function showSuccess(message) {
+        const successDiv = document.createElement('div');
+        successDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4cc9f0;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+        `;
+        successDiv.textContent = message;
+        document.body.appendChild(successDiv);
+
+        setTimeout(() => {
+            successDiv.remove();
+        }, 5000);
+    }
+</script>
+</body>
+</html>

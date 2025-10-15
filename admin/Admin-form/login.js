@@ -30,12 +30,19 @@ document.addEventListener('DOMContentLoaded', function() {
         otpInputs.forEach((input, index) => {
             // Handle input
             input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                // Only allow numbers
+                if (!/^\d*$/.test(value)) {
+                    input.value = value.replace(/\D/g, '');
+                    return;
+                }
+                
                 if (input.value.length === 1 && index < 5) {
                     otpInputs[index + 1].focus();
                 }
                 // Auto-submit when last digit is entered
                 if (index === 5 && input.value.length === 1) {
-                    otpForm.dispatchEvent(new Event('submit'));
+                    setTimeout(() => otpForm.dispatchEvent(new Event('submit')), 100);
                 }
             });
             
@@ -145,117 +152,108 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('user', JSON.stringify(data.user));
         
         // Redirect based on role
-        const redirectPath = data.user.role === 'admin' 
-            ? '/profile-page.html' 
-            : '/teacher-dashboard.html';
+        let redirectPath = '/dashboard.html';
+        if (data.user.role === 'admin') {
+            redirectPath = '/profile-page.html';
+        } else if (data.user.role === 'teacher') {
+            redirectPath = '/teacher-dashboard.html';
+        } else if (data.user.role === 'director') {
+            redirectPath = '/director-dashboard.html';
+        }
             
+        console.log('Login successful, redirecting to:', redirectPath);
         window.location.href = redirectPath;
     }
 
-    // Enhanced OTP verification
-// Client-side OTP verification
-// In your login.js
-async function verifyOTP(otp) {
-  try {
-    const response = await fetch('/verify-otp', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${tempToken}` // Use the stored tempToken
-      },
-      body: JSON.stringify({ otp })
-    });
+    // OTP verification function
+    async function verifyOTP(otp) {
+        try {
+            const response = await fetch('/verify-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${tempToken}`
+                },
+                body: JSON.stringify({ otp })
+            });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'OTP verification failed');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'OTP verification failed');
+            }
+
+            const data = await response.json();
+            return data;
+            
+        } catch (error) {
+            console.error('OTP Verification Error:', error);
+            throw error;
+        }
     }
-
-    const data = await response.json();
-    return data;
-    
-  } catch (error) {
-    console.error('OTP Verification Error:', error);
-    throw error; // Re-throw to be caught by the form handler
-  }
-}
-
-// Update your OTP form submit handler
-otpForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const otp = getOTP();
-  
-  if (otp.length !== 6) {
-    showMessage(otpMessage, 'Please enter a complete 6-digit code', 'error');
-    return;
-  }
-
-  setLoading(verifyOtpBtn, otpBtnText, otpLoadingSpinner, true);
-  
-  try {
-    const result = await verifyOTP(otp);
-    completeLogin(result);
-  } catch (error) {
-    showMessage(otpMessage, error.message, 'error');
-    
-    // Reset inputs only for certain errors
-    if (error.message.includes('expired') || 
-        error.message.includes('Invalid')) {
-      resetOTPInputs();
-    }
-  } finally {
-    setLoading(verifyOtpBtn, otpBtnText, otpLoadingSpinner, false);
-  }
-});
 
     // ==================== EVENT LISTENERS ====================
 
     // Initialize OTP inputs
     initOTPInputs();
 
-    // Login form submission
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value;
-  
-  if (!username || !password) {
-    showMessage(messageDiv, 'Please enter both username and password', 'error');
-    return;
-  }
-  
-  setLoading(loginBtn, btnText, loadingSpinner, true);
-  
-  try {
-    const response = await axios.post('/login', {
-      username,
-      password
-    });
-    
-    console.log('Login response:', response.data);
-    
-    if (response.data.tempToken) {
-      // Only admins will receive tempToken (needs OTP)
-      tempToken = response.data.tempToken;
-      showOTPModal();
-      
-      // Debug log (remove in production)
-      if (response.data.otp) {
-        console.log('ADMIN OTP:', response.data.otp);
-      }
-    } else {
-      // Regular users will receive token directly
-      completeLogin(response.data);
-    }
-  } catch (error) {
-    const errorMsg = error.response?.data?.error || 'Login failed. Please try again.';
-    showMessage(messageDiv, errorMsg, 'error');
-  } finally {
-    setLoading(loginBtn, btnText, loadingSpinner, false);
-  }
-});
+    // Login form submission - USING FETCH INSTEAD OF AXIOS
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value;
+        
+        if (!username || !password) {
+            showMessage(messageDiv, 'Please enter both username and password', 'error');
+            return;
+        }
+        
+        setLoading(loginBtn, btnText, loadingSpinner, true);
+        
+        try {
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            });
 
-    // Only one OTP form submit handler should exist
+            const data = await response.json();
+            console.log('Login response:', data);
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Login failed');
+            }
+
+            if (data.tempToken) {
+                // OTP required for admin/director
+                tempToken = data.tempToken;
+                showOTPModal();
+                
+                // Debug log
+                if (data.debugOtp) {
+                    console.log('DEBUG OTP:', data.debugOtp);
+                    // You can auto-fill for testing
+                    // otpInputs[0].value = data.debugOtp[0];
+                    // otpInputs[1].value = data.debugOtp[1];
+                    // otpInputs[2].value = data.debugOtp[2];
+                    // otpInputs[3].value = data.debugOtp[3];
+                    // otpInputs[4].value = data.debugOtp[4];
+                    // otpInputs[5].value = data.debugOtp[5];
+                }
+            } else {
+                // Regular users get token directly
+                completeLogin(data);
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            showMessage(messageDiv, error.message, 'error');
+        } finally {
+            setLoading(loginBtn, btnText, loadingSpinner, false);
+        }
+    });
+
+    // OTP form submit handler
     otpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const otp = getOTP();
@@ -290,38 +288,51 @@ loginForm.addEventListener('submit', async (e) => {
         setLoading(verifyOtpBtn, otpBtnText, otpLoadingSpinner, true);
         
         try {
-            const response = await axios.post('/send-otp', {}, {
+            const response = await fetch('/send-otp', {
+                method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${tempToken}`
+                    'Authorization': `Bearer ${tempToken}`,
+                    'Content-Type': 'application/json'
                 }
             });
-            
+
+            if (!response.ok) {
+                throw new Error('Failed to resend OTP');
+            }
+
+            const data = await response.json();
             showMessage(otpMessage, 'New OTP sent successfully!', 'success');
             resetOTPInputs();
             startCountdown();
             
-            // Debug log (remove in production)
-            if (response.data.otp) {
-                console.log('New TEST OTP:', response.data.otp);
-            }
         } catch (error) {
             let errorMsg = 'Failed to resend OTP';
-            
-            if (error.response) {
-                if (error.response.status === 401) {
-                    errorMsg = 'Session expired. Please login again.';
-                } else if (error.response.data?.error) {
-                    errorMsg += `: ${error.response.data.error}`;
-                }
-            }
-            
             showMessage(otpMessage, errorMsg, 'error');
         } finally {
             setLoading(verifyOtpBtn, otpBtnText, otpLoadingSpinner, false);
         }
     });
 
-    // Debugging helper (remove in production)
+    // Close modal when clicking outside
+    otpModal.addEventListener('click', (e) => {
+        if (e.target === otpModal) {
+            otpModal.style.display = 'none';
+        }
+    });
+
+    // Debugging
     console.log('Login system initialized');
     console.log('Current client time:', new Date());
+    console.log('Available endpoints: /login, /verify-otp, /send-otp');
 });
+// Test server connectivity
+async function testServer() {
+    try {
+        const response = await fetch('/login', { method: 'GET' });
+        console.log('Server status:', response.status);
+        console.log('Server headers:', response.headers);
+    } catch (error) {
+        console.error('Server connection failed:', error);
+    }
+}
+testServer();
