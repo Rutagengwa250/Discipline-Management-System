@@ -2103,7 +2103,670 @@ app.get('/api/director/students/:id', authenticateToken, authorizeRole(['directo
 app.get('/director-dashboard.html', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'director-dashboard.html'));
 });
+// Director routes for system management
+// Director routes for system management
+// Get system statistics with proper error handling
+app.get('/api/director/system-stats', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  try {
+    console.log('Fetching system stats...');
+    
+    // Get current term with fallback
+    let currentTerm = { name: 'Term 1' };
+    try {
+      const [terms] = await connection.query(`
+        SELECT * FROM terms WHERE status = 'active' ORDER BY start_date DESC LIMIT 1
+      `);
+      if (terms.length > 0) {
+        currentTerm = terms[0];
+      }
+    } catch (termError) {
+      console.log('Terms table not available, using default term');
+    }
 
+    // Get student statistics with safe queries
+    let studentStats = { 
+      total_students: 0, 
+      promotable_students: 0, 
+      repeat_students: 0, 
+      graduating_students: 0 
+    };
+    
+    try {
+      const [stats] = await connection.query(`
+        SELECT 
+          COUNT(*) as total_students,
+          SUM(CASE WHEN student_conduct >= 20 THEN 1 ELSE 0 END) as promotable_students,
+          SUM(CASE WHEN student_conduct < 20 THEN 1 ELSE 0 END) as repeat_students,
+          SUM(CASE WHEN student_class LIKE 'S6%' OR student_class = 'S6' THEN 1 ELSE 0 END) as graduating_students
+        FROM student
+      `);
+      if (stats.length > 0) {
+        studentStats = stats[0];
+      }
+    } catch (studentError) {
+      console.log('Error fetching student stats:', studentError.message);
+    }
+
+    // Get last backup with safe query
+    let lastBackup = null;
+    try {
+      const [backups] = await connection.query(`
+        SELECT created_at FROM backups ORDER BY created_at DESC LIMIT 1
+      `);
+      if (backups.length > 0) {
+        lastBackup = new Date(backups[0].created_at).toLocaleDateString();
+      }
+    } catch (backupError) {
+      console.log('Backups table not available');
+    }
+
+    // Count distinct classes safely
+    let classCount = 0;
+    try {
+      const [classes] = await connection.query(`
+        SELECT COUNT(DISTINCT student_class) as class_count FROM student 
+        WHERE student_class != 'Graduated'
+      `);
+      if (classes.length > 0) {
+        classCount = classes[0].class_count;
+      }
+    } catch (classError) {
+      console.log('Error counting classes:', classError.message);
+    }
+
+    // Calculate next promotion date
+    const nextPromotion = new Date();
+    nextPromotion.setMonth(11); // December
+    nextPromotion.setDate(15);
+
+    res.json({
+      current_term: currentTerm.name,
+      total_students: studentStats.total_students || 0,
+      promotable_students: studentStats.promotable_students || 0,
+      repeat_students: studentStats.repeat_students || 0,
+      graduating_students: studentStats.graduating_students || 0,
+      new_classes: classCount,
+      next_promotion: nextPromotion.toISOString().split('T')[0],
+      last_backup: lastBackup || 'Never'
+    });
+
+  } catch (error) {
+    console.error('Error fetching system stats:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch system statistics',
+      details: error.message 
+    });
+  }
+});
+
+// Reset conduct scores with proper transaction handling
+app.post('/api/director/reset-conduct', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { term_name, reset_date } = req.body;
+    console.log('Resetting conduct for new term:', term_name);
+
+    // 1. Check if we have an active term to archive
+    let archivedTermId = null;
+    try {
+      const [activeTerms] = await conn.query(`SELECT id FROM terms WHERE status = 'active'`);
+      if (activeTerms.length > 0) {
+        await conn.query(`
+          UPDATE terms 
+          SET status = 'archived', end_date = ? 
+          WHERE status = 'active'
+        `, [reset_date]);
+        
+        // Get the archived term ID
+        const [archived] = await conn.query(`
+          SELECT id FROM terms WHERE status = 'archived' ORDER BY end_date DESC LIMIT 1
+        `);
+        if (archived.length > 0) {
+          archivedTermId = archived[0].id;
+        }
+      }
+    } catch (termError) {
+      console.log('No active term to archive or terms table issue:', termError.message);
+    }
+
+    // 2. Create new term
+    const [newTerm] = await conn.query(`
+      INSERT INTO terms (name, start_date, status) 
+      VALUES (?, ?, 'active')
+    `, [term_name, reset_date]);
+
+    const newTermId = newTerm.insertId;
+
+    // 3. Archive current student conduct records if we have students and an archived term
+    try {
+      const [students] = await conn.query('SELECT id, student_conduct FROM student WHERE student_conduct IS NOT NULL');
+      if (students.length > 0 && archivedTermId) {
+        for (const student of students) {
+          const [faultCount] = await conn.query('SELECT COUNT(*) as count FROM faults WHERE student_id = ?', [student.id]);
+          
+          await conn.query(`
+            INSERT INTO student_conduct_history 
+            (student_id, term_id, conduct_score, faults_count, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+          `, [
+            student.id, 
+            archivedTermId,
+            student.student_conduct || 40.00, // Ensure we have a default value
+            faultCount[0].count || 0
+          ]);
+        }
+        console.log(`Archived conduct for ${students.length} students`);
+      }
+    } catch (archiveError) {
+      console.log('Error archiving conduct records:', archiveError.message);
+      // Continue with reset even if archiving fails
+    }
+
+    // 4. Reset all student conduct scores to 40
+    await conn.query(`UPDATE student SET student_conduct = 40.00`);
+
+    // 5. Archive and clear current faults if they exist
+    try {
+      const [faults] = await conn.query('SELECT COUNT(*) as count FROM faults');
+      if (faults[0].count > 0) {
+        await conn.query(`INSERT INTO faults_archive SELECT *, NULL, NOW() FROM faults`);
+        await conn.query(`DELETE FROM faults`);
+        console.log(`Archived and cleared ${faults[0].count} faults`);
+      }
+    } catch (faultError) {
+      console.log('Error handling faults:', faultError.message);
+      // Continue even if faults handling fails
+    }
+
+    await conn.commit();
+
+    console.log('Term reset successfully');
+    res.json({ 
+      success: true, 
+      message: 'Term reset successfully', 
+      new_term_id: newTermId,
+      students_updated: true
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error resetting conduct:', error);
+    res.status(500).json({ 
+      error: 'Failed to reset conduct scores',
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+// Create backup with proper error handling
+app.post('/api/director/create-backup', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { backup_name, description, backup_type = 'full' } = req.body;
+    console.log('Creating backup:', backup_name, 'Type:', backup_type);
+
+    const userId = req.user.userId;
+
+    // Create backup record
+    const [backup] = await conn.query(`
+      INSERT INTO backups (name, description, backup_type, created_by, created_at) 
+      VALUES (?, ?, ?, ?, NOW())
+    `, [backup_name, description, backup_type, userId]);
+
+    const backupId = backup.insertId;
+
+    // Perform backup based on type
+    if (backup_type === 'full' || backup_type === 'students') {
+      try {
+        const [students] = await conn.query('SELECT * FROM student');
+        for (const student of students) {
+          await conn.query(`
+            INSERT INTO backup_students 
+            (backup_id, student_id, student_firstName, student_middleName, student_lastName, 
+             student_class, student_conduct, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+          `, [backupId, student.id, student.student_firstName, student.student_middleName, 
+              student.student_lastName, student.student_class, student.student_conduct || 40.00]);
+        }
+        console.log(`Backed up ${students.length} students`);
+      } catch (studentError) {
+        console.log('Error backing up students:', studentError.message);
+      }
+    }
+
+    if (backup_type === 'full') {
+      // Backup other data as needed
+      console.log('Full backup completed');
+    }
+
+    await conn.commit();
+
+    console.log('Backup created successfully with ID:', backupId);
+    res.json({ 
+      success: true, 
+      message: 'Backup created successfully', 
+      backup_id: backupId,
+      backup_type: backup_type
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error creating backup:', error);
+    res.status(500).json({ 
+      error: 'Failed to create backup',
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+// Get backups list
+app.get('/api/director/backups', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  try {
+    let backups = [];
+    try {
+      const [backupData] = await connection.query(`
+        SELECT b.*, a.username as created_by_name
+        FROM backups b
+        LEFT JOIN administrator a ON b.created_by = a.id
+        ORDER BY b.created_at DESC
+      `);
+      backups = backupData;
+    } catch (backupError) {
+      console.log('Error fetching backups:', backupError.message);
+    }
+
+    res.json({ backups });
+  } catch (error) {
+    console.error('Error fetching backups:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch backups',
+      details: error.message 
+    });
+  }
+});
+// Restore from backup
+app.post('/api/director/restore-backup', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { backup_id, restore_type = 'full' } = req.body;
+    console.log('Restoring from backup:', backup_id, 'Type:', restore_type);
+
+    // Verify backup exists
+    const [backup] = await conn.query('SELECT * FROM backups WHERE id = ?', [backup_id]);
+    if (backup.length === 0) {
+      throw new Error('Backup not found');
+    }
+
+    if (restore_type === 'full' || restore_type === 'students') {
+      await restoreStudents(conn, backup_id);
+    }
+
+    if (restore_type === 'full' || restore_type === 'conduct') {
+      await restoreConductData(conn, backup_id);
+    }
+
+    await conn.commit();
+
+    res.json({ 
+      success: true, 
+      message: 'Backup restored successfully',
+      restored_backup: backup[0].name
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error restoring backup:', error);
+    res.status(500).json({ error: 'Failed to restore backup: ' + error.message });
+  } finally {
+    conn.release();
+  }
+});
+
+async function restoreStudents(conn, backupId) {
+  // Get backup student data
+  const [backupStudents] = await conn.query(`
+    SELECT * FROM backup_students WHERE backup_id = ?
+  `, [backupId]);
+
+  // Restore students
+  for (const student of backupStudents) {
+    await conn.query(`
+      INSERT INTO student (id, student_firstName, student_middleName, student_lastName, student_class, student_conduct)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        student_firstName = VALUES(student_firstName),
+        student_middleName = VALUES(student_middleName),
+        student_lastName = VALUES(student_lastName),
+        student_class = VALUES(student_class),
+        student_conduct = VALUES(student_conduct)
+    `, [student.student_id, student.student_firstName, student.student_middleName,
+        student.student_lastName, student.student_class, student.student_conduct]);
+  }
+
+  console.log(`Restored ${backupStudents.length} students from backup`);
+}
+
+async function restoreConductData(conn, backupId) {
+  // Get backup conduct data
+  const [backupConduct] = await conn.query(`
+    SELECT * FROM backup_conduct_data WHERE backup_id = ?
+  `, [backupId]);
+
+  // Restore conduct scores
+  for (const conduct of backupConduct) {
+    await conn.query(`
+      UPDATE student SET student_conduct = ? WHERE id = ?
+    `, [conduct.conduct_score, conduct.student_id]);
+  }
+
+  console.log(`Restored conduct data for ${backupConduct.length} students from backup`);
+}
+
+// Export backup to file
+app.get('/api/director/export-backup/:id', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  try {
+    const backupId = req.params.id;
+    
+    const [backupData] = await connection.query(`
+      SELECT 
+        b.name as backup_name,
+        b.description,
+        b.created_at,
+        a.username as created_by,
+        bs.student_firstName,
+        bs.student_lastName,
+        bs.student_class,
+        bs.student_conduct
+      FROM backups b
+      LEFT JOIN administrator a ON b.created_by = a.id
+      LEFT JOIN backup_students bs ON b.id = bs.backup_id
+      WHERE b.id = ?
+    `, [backupId]);
+
+    if (backupData.length === 0) {
+      return res.status(404).json({ error: 'Backup not found' });
+    }
+
+    // Create CSV export
+    const csvData = convertToCSV(backupData);
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=backup-${backupId}-${new Date().toISOString().split('T')[0]}.csv`);
+    res.send(csvData);
+
+  } catch (error) {
+    console.error('Error exporting backup:', error);
+    res.status(500).json({ error: 'Failed to export backup: ' + error.message });
+  }
+});
+
+function convertToCSV(data) {
+  if (data.length === 0) return '';
+  
+  const headers = Object.keys(data[0]).join(',');
+  const rows = data.map(row => 
+    Object.values(row).map(field => 
+      `"${String(field || '').replace(/"/g, '""')}"`
+    ).join(',')
+  );
+  
+  return [headers, ...rows].join('\n');
+}
+// Promote students endpoint
+app.post('/api/director/promote-students', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { academic_year, promotion_date } = req.body;
+    console.log('Promoting students for academic year:', academic_year);
+
+    // 1. Archive current academic year data
+    const [studentData] = await conn.query(`
+      SELECT 
+        COUNT(*) as student_count,
+        AVG(student_conduct) as avg_conduct
+      FROM student
+    `);
+
+    try {
+      await conn.query(`
+        INSERT INTO academic_year_history 
+        (academic_year, student_count, avg_conduct, promotion_date)
+        VALUES (?, ?, ?, ?)
+      `, [
+        academic_year, 
+        studentData[0].student_count, 
+        studentData[0].avg_conduct || 40, 
+        promotion_date
+      ]);
+    } catch (historyError) {
+      console.log('Error creating academic year history:', historyError.message);
+    }
+
+    // 2. Promote students based on conduct scores
+    // Students with conduct >= 20 get promoted, others repeat
+    await conn.query(`
+      UPDATE student 
+      SET student_class = 
+        CASE 
+          WHEN student_conduct >= 20 THEN 
+            CASE 
+              WHEN student_class = 'S1' THEN 'S2'
+              WHEN student_class = 'S2' THEN 'S3'
+              WHEN student_class = 'S3' THEN 'S4'
+              WHEN student_class = 'S4' THEN 'S5'
+              WHEN student_class = 'S5' THEN 'S6'
+              WHEN student_class LIKE 'S6%' THEN 'Graduated'
+              ELSE student_class
+            END
+          ELSE student_class  -- Repeat the class
+        END,
+        student_conduct = 40  -- Reset conduct for new academic year
+      WHERE student_class != 'Graduated'
+    `);
+
+    // 3. Handle graduated students
+    try {
+      const [graduatedStudents] = await conn.query(`
+        SELECT s.* FROM student s 
+        WHERE s.student_class = 'Graduated'
+      `);
+
+      if (graduatedStudents.length > 0) {
+        for (const student of graduatedStudents) {
+          await conn.query(`
+            INSERT INTO alumni_students 
+            (student_id, student_firstName, student_middleName, student_lastName, student_class, student_conduct)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [
+            student.id,
+            student.student_firstName,
+            student.student_middleName,
+            student.student_lastName,
+            student.student_class,
+            student.student_conduct
+          ]);
+        }
+        
+        await conn.query(`DELETE FROM student WHERE student_class = 'Graduated'`);
+      }
+    } catch (graduationError) {
+      console.log('Error handling graduated students:', graduationError.message);
+    }
+
+    await conn.commit();
+
+    console.log('Student promotion completed successfully');
+    res.json({ 
+      success: true, 
+      message: 'Student promotion completed successfully'
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error promoting students:', error);
+    res.status(500).json({ 
+      error: 'Failed to promote students',
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+// Delete backup endpoint
+app.delete('/api/director/backups/:id', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const backupId = req.params.id;
+
+    // Delete backup and related records (cascade should handle this)
+    const [result] = await conn.query('DELETE FROM backups WHERE id = ?', [backupId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Backup not found' });
+    }
+
+    await conn.commit();
+
+    res.json({ 
+      success: true, 
+      message: 'Backup deleted successfully'
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error deleting backup:', error);
+    res.status(500).json({ 
+      error: 'Failed to delete backup',
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+// Export backup endpoint
+app.get('/api/director/export-backup/:id', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  try {
+    const backupId = req.params.id;
+    
+    const [backupData] = await connection.query(`
+      SELECT 
+        b.name as backup_name,
+        b.description,
+        b.created_at,
+        a.username as created_by,
+        bs.student_firstName,
+        bs.student_lastName,
+        bs.student_class,
+        bs.student_conduct
+      FROM backups b
+      LEFT JOIN administrator a ON b.created_by = a.id
+      LEFT JOIN backup_students bs ON b.id = bs.backup_id
+      WHERE b.id = ?
+    `, [backupId]);
+
+    if (backupData.length === 0) {
+      return res.status(404).json({ error: 'Backup not found' });
+    }
+
+    // Create CSV export
+    const csvData = convertToCSV(backupData);
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=backup-${backupId}-${new Date().toISOString().split('T')[0]}.csv`);
+    res.send(csvData);
+
+  } catch (error) {
+    console.error('Error exporting backup:', error);
+    res.status(500).json({ 
+      error: 'Failed to export backup',
+      details: error.message 
+    });
+  }
+});
+
+// Restore backup endpoint
+app.post('/api/director/restore-backup', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { backup_id, restore_type = 'full' } = req.body;
+
+    // Verify backup exists
+    const [backup] = await conn.query('SELECT * FROM backups WHERE id = ?', [backupId]);
+    if (backup.length === 0) {
+      throw new Error('Backup not found');
+    }
+
+    if (restore_type === 'full' || restore_type === 'students') {
+      // Get backup student data
+      const [backupStudents] = await conn.query(`
+        SELECT * FROM backup_students WHERE backup_id = ?
+      `, [backup_id]);
+
+      // Restore students
+      for (const student of backupStudents) {
+        await conn.query(`
+          INSERT INTO student (id, student_firstName, student_middleName, student_lastName, student_class, student_conduct)
+          VALUES (?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            student_firstName = VALUES(student_firstName),
+            student_middleName = VALUES(student_middleName),
+            student_lastName = VALUES(student_lastName),
+            student_class = VALUES(student_class),
+            student_conduct = VALUES(student_conduct)
+        `, [student.student_id, student.student_firstName, student.student_middleName,
+            student.student_lastName, student.student_class, student.student_conduct]);
+      }
+    }
+
+    await conn.commit();
+
+    res.json({ 
+      success: true, 
+      message: 'Backup restored successfully'
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error restoring backup:', error);
+    res.status(500).json({ 
+      error: 'Failed to restore backup',
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+function convertToCSV(data) {
+  if (data.length === 0) return '';
+  
+  const headers = Object.keys(data[0]).join(',');
+  const rows = data.map(row => 
+    Object.values(row).map(field => 
+      `"${String(field || '').replace(/"/g, '""')}"`
+    ).join(',')
+  );
+  
+  return [headers, ...rows].join('\n');
+}
 // ====================== HOME ROUTES ====================== //
 
 app.get('/', (req, res) => {

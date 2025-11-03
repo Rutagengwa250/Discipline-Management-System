@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard - School Discipline Management</title>
+    <title>Analytics - School Discipline Management System</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,7 +14,6 @@
             --secondary: #7209b7;
             --success: #4cc9f0;
             --warning: #f72585;
-            --danger: #e63946;
             --info: #4895ef;
             --light: #f8f9fa;
             --dark: #212529;
@@ -30,9 +29,8 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #f5f7fb;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            color: var(--dark);
         }
 
         .dashboard-container {
@@ -47,10 +45,6 @@
             color: white;
             padding: 2rem 0;
             box-shadow: 4px 0 20px rgba(0,0,0,0.1);
-            position: fixed;
-            width: 280px;
-            height: 100vh;
-            overflow-y: auto;
         }
 
         .logo {
@@ -106,9 +100,9 @@
 
         /* Main Content Styles */
         .main-content {
-            grid-column: 2;
+            background: var(--light);
             padding: 2rem;
-            background: #f5f7fb;
+            overflow-y: auto;
         }
 
         .header {
@@ -116,50 +110,23 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
-            background: white;
-            padding: 1.5rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
-        .header h1 {
-            color: var(--dark);
-            font-size: 1.8rem;
+        .header h2 {
+            font-size: 2rem;
             font-weight: 700;
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .date-filter {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .date-filter select {
-            padding: 0.5rem 1rem;
-            border: 2px solid var(--border);
-            border-radius: 8px;
-            background: white;
-            font-size: 0.9rem;
+            color: var(--dark);
         }
 
         .user-info {
             display: flex;
             align-items: center;
             gap: 1rem;
-            padding: 0.5rem 1rem;
-            background: var(--light);
-            border-radius: 12px;
         }
 
         .user-avatar {
-            width: 45px;
-            height: 45px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: var(--primary);
             display: flex;
@@ -167,36 +134,155 @@
             justify-content: center;
             color: white;
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 1.25rem;
         }
 
-        /* KPI Cards */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .kpi-card {
+        /* Analytics Filters */
+        .analytics-filters {
             background: white;
             padding: 1.5rem;
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
             display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 1rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .kpi-card:hover {
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray);
+        }
+
+        .filter-select {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            min-width: 150px;
+        }
+
+        .filter-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Analytics Grid */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .analytics-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-header h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .card-action {
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: color 0.3s ease;
+        }
+
+        .card-action:hover {
+            color: var(--primary);
+        }
+
+        .chart-container {
+            position: relative;
+            flex: 1;
+            min-height: 250px;
+        }
+
+        .chart-container canvas {
+            max-width: 100%;
+            height: auto !important;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
 
-        .kpi-icon {
-            width: 60px;
-            height: 60px;
+        .stat-card.offenses { border-left-color: var(--warning); }
+        .stat-card.teachers { border-left-color: var(--secondary); }
+        .stat-card.trends { border-left-color: var(--info); }
+        .stat-card.classes { border-left-color: var(--success); }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
             border-radius: 12px;
             display: flex;
             align-items: center;
@@ -205,207 +291,100 @@
             color: white;
         }
 
-        .kpi-content {
-            flex: 1;
-        }
+        .stat-card.offenses .stat-icon { background: var(--warning); }
+        .stat-card.teachers .stat-icon { background: var(--secondary); }
+        .stat-card.trends .stat-icon { background: var(--info); }
+        .stat-card.classes .stat-icon { background: var(--success); }
 
-        .kpi-value {
+        .stat-value {
             font-size: 2rem;
             font-weight: 700;
+            color: var(--dark);
             margin-bottom: 0.25rem;
         }
 
-        .kpi-label {
+        .stat-label {
             color: var(--gray);
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .kpi-trend {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 0.8rem;
+            font-size: 0.875rem;
             font-weight: 500;
-        }
-
-        .trend-up { color: #28a745; }
-        .trend-down { color: #dc3545; }
-
-        /* Charts Grid */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .chart-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .chart-header h3 {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--dark);
-        }
-
-        .chart-container {
-            height: 300px;
-            position: relative;
-        }
-
-        /* Mini Charts */
-        .mini-charts {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .mini-chart {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        }
-
-        .mini-chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .mini-chart-header h4 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--dark);
-        }
-
-        .mini-chart-container {
-            height: 200px;
         }
 
         /* Tables */
-        .tables-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
-        }
-
-        .table-card {
+        .table-container {
             background: white;
-            padding: 1.5rem;
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 2rem;
         }
 
         .table-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
         }
 
         .table-header h3 {
-            font-size: 1.2rem;
+            font-size: 1.25rem;
             font-weight: 600;
             color: var(--dark);
         }
 
-        .view-all {
-            color: var(--primary);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
+        .table-actions {
+            display: flex;
+            gap: 0.5rem;
         }
 
-        .analytics-table {
+        .table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .analytics-table th,
-        .analytics-table td {
+        .table th {
+            background: #f8f9fa;
             padding: 1rem;
             text-align: left;
+            font-weight: 600;
+            color: var(--dark);
             border-bottom: 1px solid var(--border);
         }
 
-        .analytics-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: var(--dark);
-            font-size: 0.9rem;
+        .table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
         }
 
-        .analytics-table tr:hover {
-            background: #f8f9fa;
-        }
-
-        .student-avatar {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.8rem;
-            font-weight: 600;
+        .table tr:last-child td {
+            border-bottom: none;
         }
 
         .badge {
+            display: inline-block;
             padding: 0.25rem 0.75rem;
             border-radius: 20px;
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: 600;
         }
 
-        .badge-success { background: #d4edda; color: #155724; }
-        .badge-warning { background: #fff3cd; color: #856404; }
-        .badge-danger { background: #f8d7da; color: #721c24; }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--gray);
+        .badge-success {
+            background: rgba(76, 201, 240, 0.1);
+            color: #4cc9f0;
         }
 
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-            border: 1px solid #f5c6cb;
+        .badge-warning {
+            background: rgba(247, 37, 133, 0.1);
+            color: #f72585;
         }
 
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .tables-grid {
-                grid-template-columns: 1fr;
-            }
+        .badge-info {
+            background: rgba(72, 149, 239, 0.1);
+            color: #4895ef;
         }
 
-        @media (max-width: 768px) {
+        /* Responsive Design */
+        @media (max-width: 1024px) {
             .dashboard-container {
                 grid-template-columns: 1fr;
             }
@@ -414,23 +393,37 @@
                 display: none;
             }
             
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
             .main-content {
-                grid-column: 1;
                 padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
             }
             
             .header {
                 flex-direction: column;
                 gap: 1rem;
+                align-items: flex-start;
             }
             
-            .header-controls {
+            .analytics-filters {
                 flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .filter-group {
                 width: 100%;
             }
             
-            .mini-charts {
-                grid-template-columns: 1fr;
+            .filter-select {
+                width: 100%;
             }
         }
     </style>
@@ -440,16 +433,14 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="logo">
-                <h1><i class="fas fa-chart-network"></i> EduAnalytics</h1>
-                <p>Advanced Analytics</p>
+                <h1><i class="fas fa-graduation-cap"></i>DMS</h1>
+                <p>Director Dashboard</p>
             </div>
             <ul class="nav-links">
-                <li><a href="/director-dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
-                <li><a href="/reports.html"><i class="fas fa-chart-bar"></i> Reports</a></li>
-                <li><a href="#" class="active"><i class="fas fa-analytics"></i> Analytics</a></li>
-                <li><a href="#"><i class="fas fa-users"></i> Students</a></li>
-                <li><a href="#"><i class="fas fa-user-tie"></i> Teachers</a></li>
-                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="director-dashboard.html"><i class="fas fa-home"></i> Dashboard</a></li>
+                <li><a href="Director-students.html"><i class="fas fa-users"></i> Students</a></li>
+                <li><a href="Director.analytics.html" class="active"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+                <li><a href="Director-report.html"><i class="fas fa-file-alt"></i> Reports</a></li>
                 <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
         </aside>
@@ -458,182 +449,215 @@
         <main class="main-content">
             <!-- Header -->
             <div class="header">
-                <h1><i class="fas fa-analytics"></i> Advanced Analytics Dashboard</h1>
-                <div class="header-controls">
-                    <div class="date-filter">
-                        <select id="timeRange">
-                            <option value="7d">Last 7 Days</option>
-                            <option value="30d" selected>Last 30 Days</option>
-                            <option value="90d">Last 90 Days</option>
-                            <option value="1y">Last Year</option>
-                        </select>
-                        <select id="classFilter">
-                            <option value="all">All Classes</option>
-                        </select>
+                <h2>Analytics Dashboard</h2>
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">D</div>
+                    <div>
+                        <div id="user-name">Loading...</div>
+                        <div style="font-size: 0.875rem; color: var(--gray);">Director</div>
                     </div>
-                    <div class="user-info">
-                        <div class="user-avatar" id="user-avatar">U</div>
+                </div>
+            </div>
+
+            <!-- Analytics Filters -->
+            <div class="analytics-filters">
+                <div class="filter-group">
+                    <label for="time-period">Time Period</label>
+                    <select id="time-period" class="filter-select">
+                        <option value="weekly">Last 7 Days</option>
+                        <option value="monthly" selected>Last 30 Days</option>
+                        <option value="quarterly">Last 90 Days</option>
+                        <option value="yearly">Last Year</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="class-filter">Class</label>
+                    <select id="class-filter" class="filter-select">
+                        <option value="all">All Classes</option>
+                        <!-- Classes will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="conduct-filter">Conduct Level</label>
+                    <select id="conduct-filter" class="filter-select">
+                        <option value="all">All Levels</option>
+                        <option value="excellent">Excellent (32+)</option>
+                        <option value="good">Good (20-31)</option>
+                        <option value="poor">Poor (&lt;20)</option>
+                    </select>
+                </div>
+                <button class="filter-btn" id="apply-filters">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card offenses">
+                    <div class="stat-header">
                         <div>
-                            <div id="user-name">User</div>
-                            <div style="font-size: 0.75rem; color: var(--gray);" id="user-role">Role</div>
+                            <div class="stat-value" id="total-offenses">0</div>
+                            <div class="stat-label">Total Offenses</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card teachers">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value" id="active-teachers">0</div>
+                            <div class="stat-label">Active Teachers</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card trends">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value" id="trend-direction">0%</div>
+                            <div class="stat-label">Trend Direction</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card classes">
+                    <div class="stat-header">
+                        <div>
+                            <div class="stat-value" id="classes-monitored">0</div>
+                            <div class="stat-label">Classes Monitored</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-school"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- KPI Cards -->
-            <div class="kpi-grid" id="kpiGrid">
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="background: var(--primary);">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <div class="kpi-content">
-                        <div class="kpi-value" id="totalCases">0</div>
-                        <div class="kpi-label">Total Discipline Cases</div>
-                        <div class="kpi-trend trend-up">
-                            <i class="fas fa-arrow-up"></i>
-                            <span id="casesTrend">0%</span> from last period
+            <!-- Analytics Charts Grid -->
+            <div class="analytics-grid">
+                <!-- Conduct Distribution Chart -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>Conduct Distribution</h3>
+                        <div class="card-actions">
+                            <button class="card-action" title="Refresh" onclick="refreshChart('conductChart')">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
                         </div>
                     </div>
-                </div>
-                
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="background: var(--success);">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="kpi-content">
-                        <div class="kpi-value" id="avgConduct">0</div>
-                        <div class="kpi-label">Average Conduct Score</div>
-                        <div class="kpi-trend trend-down">
-                            <i class="fas fa-arrow-down"></i>
-                            <span id="conductTrend">0%</span> from last period
-                        </div>
+                    <div class="chart-container">
+                        <canvas id="conductChart"></canvas>
                     </div>
                 </div>
-                
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="background: var(--warning);">
-                        <i class="fas fa-user-slash"></i>
-                    </div>
-                    <div class="kpi-content">
-                        <div class="kpi-value" id="atRiskStudents">0</div>
-                        <div class="kpi-label">At-Risk Students</div>
-                        <div class="kpi-trend trend-up">
-                            <i class="fas fa-arrow-up"></i>
-                            <span id="riskTrend">0%</span> from last period
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="kpi-card">
-                    <div class="kpi-icon" style="background: var(--info);">
-                        <i class="fas fa-clock"></i>
-                    </div>
-                    <div class="kpi-content">
-                        <div class="kpi-value" id="avgResponse">0h</div>
-                        <div class="kpi-label">Avg. Response Time</div>
-                        <div class="kpi-trend trend-down">
-                            <i class="fas fa-arrow-down"></i>
-                            <span id="responseTrend">0%</span> from last period
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Main Charts -->
-            <div class="charts-grid">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Discipline Cases Trend</h3>
-                        <select id="trendMetric" style="padding: 0.25rem 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
-                            <option value="cases">Number of Cases</option>
-                            <option value="points">Points Deducted</option>
-                        </select>
+                <!-- Offense Trends Chart -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>Offense Trends</h3>
+                        <div class="card-actions">
+                            <button class="card-action" title="Refresh" onclick="refreshChart('trendChart')">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="chart-container">
                         <canvas id="trendChart"></canvas>
                     </div>
                 </div>
-                
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3>Cases by Type</h3>
+
+                <!-- Class Performance Chart -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>Class Performance</h3>
+                        <div class="card-actions">
+                            <button class="card-action" title="Refresh" onclick="refreshChart('classChart')">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="chart-container">
-                        <canvas id="typeChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mini Charts -->
-            <div class="mini-charts">
-                <div class="mini-chart">
-                    <div class="mini-chart-header">
-                        <h4>Class Performance</h4>
-                    </div>
-                    <div class="mini-chart-container">
                         <canvas id="classChart"></canvas>
                     </div>
                 </div>
-                
-                <div class="mini-chart">
-                    <div class="mini-chart-header">
-                        <h4>Teacher Activity</h4>
+
+                <!-- Teacher Activity Chart -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>Teacher Activity</h3>
+                        <div class="card-actions">
+                            <button class="card-action" title="Refresh" onclick="refreshChart('teacherChart')">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div class="mini-chart-container">
+                    <div class="chart-container">
                         <canvas id="teacherChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Tables -->
-            <div class="tables-grid">
-                <div class="table-card">
-                    <div class="table-header">
-                        <h3>Top Offenses</h3>
-                        <a href="#" class="view-all">View All</a>
-                    </div>
-                    <div class="table-container">
-                        <table class="analytics-table">
-                            <thead>
-                                <tr>
-                                    <th>Offense Type</th>
-                                    <th>Frequency</th>
-                                    <th>Avg. Points</th>
-                                    <th>Trend</th>
-                                </tr>
-                            </thead>
-                            <tbody id="offensesTable">
-                                <tr>
-                                    <td colspan="4" class="loading">Loading offenses...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+            <!-- Top Offenses Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Top Offenses</h3>
+                    <div class="table-actions">
+                        <button class="filter-btn" id="refresh-offenses">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
                     </div>
                 </div>
-                
-                <div class="table-card">
-                    <div class="table-header">
-                        <h3>At-Risk Students</h3>
-                        <a href="#" class="view-all">View All</a>
+                <div class="table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Offense Type</th>
+                                <th>Frequency</th>
+                                <th>Avg. Points</th>
+                                <th>Most Affected Class</th>
+                                <th>Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="offenses-table-body">
+                            <!-- Offenses will be populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Class Performance Table -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Class Performance Overview</h3>
+                    <div class="table-actions">
+                        <button class="filter-btn" id="refresh-classes">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
                     </div>
-                    <div class="table-container">
-                        <table class="analytics-table">
-                            <thead>
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Class</th>
-                                    <th>Conduct</th>
-                                    <th>Cases</th>
-                                </tr>
-                            </thead>
-                            <tbody id="studentsTable">
-                                <tr>
-                                    <td colspan="4" class="loading">Loading students...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Class</th>
+                                <th>Total Students</th>
+                                <th>Avg. Conduct</th>
+                                <th>Total Offenses</th>
+                                <th>Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="classes-table-body">
+                            <!-- Classes will be populated dynamically -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </main>
@@ -642,22 +666,26 @@
     <script>
         // Global variables
         let currentUser = null;
-        let analyticsData = null;
         let charts = {};
+        let currentFilters = {
+            period: 'monthly',
+            class: 'all',
+            conduct: 'all'
+        };
+        let currentReportData = null;
 
-        // Initialize
+        // Initialize analytics page
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing analytics...');
             checkAuthentication();
-            setupEventListeners();
-            loadClasses();
             loadAnalyticsData();
+            setupEventListeners();
         });
 
-        // Authentication
+        // Check if user is authenticated
         function checkAuthentication() {
             const token = localStorage.getItem('token');
             if (!token) {
+                console.log('No token found, redirecting to login');
                 window.location.href = '/';
                 return;
             }
@@ -668,8 +696,8 @@
                     currentUser = JSON.parse(userData);
                     document.getElementById('user-name').textContent = currentUser.username;
                     document.getElementById('user-avatar').textContent = currentUser.username.charAt(0).toUpperCase();
-                    document.getElementById('user-role').textContent = currentUser.role;
                 } else {
+                    console.log('No user data found');
                     logout();
                 }
             } catch (error) {
@@ -678,15 +706,481 @@
             }
         }
 
+        // Setup event listeners
         function setupEventListeners() {
-            document.getElementById('timeRange').addEventListener('change', loadAnalyticsData);
-            document.getElementById('classFilter').addEventListener('change', loadAnalyticsData);
-            document.getElementById('trendMetric').addEventListener('change', updateTrendChart);
             document.getElementById('logout-btn').addEventListener('click', logout);
+            document.getElementById('apply-filters').addEventListener('click', applyFilters);
+            document.getElementById('refresh-offenses').addEventListener('click', () => {
+                if (currentReportData && currentReportData.topOffenses) {
+                    loadTopOffenses(currentReportData.topOffenses);
+                } else {
+                    loadAnalyticsData();
+                }
+            });
+            document.getElementById('refresh-classes').addEventListener('click', () => {
+                if (currentReportData && currentReportData.classReport) {
+                    loadClassPerformance(currentReportData.classReport);
+                } else {
+                    loadAnalyticsData();
+                }
+            });
+            
+            // Filter change listeners
+            document.getElementById('time-period').addEventListener('change', function() {
+                currentFilters.period = this.value;
+            });
+            
+            document.getElementById('class-filter').addEventListener('change', function() {
+                currentFilters.class = this.value;
+            });
+            
+            document.getElementById('conduct-filter').addEventListener('change', function() {
+                currentFilters.conduct = this.value;
+            });
         }
 
-        // Load classes from your server
-        async function loadClasses() {
+        // Load analytics data
+        async function loadAnalyticsData() {
+            try {
+                const token = localStorage.getItem('token');
+                console.log('Loading analytics data...');
+                
+                // Load dashboard stats for overview
+                const statsResponse = await fetch('/api/director/dashboard-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (statsResponse.status === 401) {
+                    logout();
+                    return;
+                }
+
+                if (!statsResponse.ok) {
+                    throw new Error(`HTTP ${statsResponse.status}: ${statsResponse.statusText}`);
+                }
+
+                const statsData = await statsResponse.json();
+                console.log('Dashboard stats:', statsData);
+                updateStats(statsData.overview, statsData.classStats);
+                
+                // Load discipline report for detailed analytics
+                const reportParams = new URLSearchParams({
+                    period: currentFilters.period,
+                    class: currentFilters.class
+                });
+                
+                const reportResponse = await fetch(`/api/director/discipline-report?${reportParams}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (reportResponse.ok) {
+                    const reportData = await reportResponse.json();
+                    console.log('Discipline report:', reportData);
+                    currentReportData = reportData; // Store for refresh buttons
+                    createCharts(reportData);
+                    loadTopOffenses(reportData.topOffenses);
+                    loadClassPerformance(reportData.classReport);
+                } else {
+                    throw new Error('Failed to fetch discipline report');
+                }
+                
+                // Load conduct trends
+                const trendsResponse = await fetch(`/api/director/conduct-trends?period=${currentFilters.period}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (trendsResponse.ok) {
+                    const trendsData = await trendsResponse.json();
+                    console.log('Conduct trends:', trendsData);
+                    createTrendChart(trendsData);
+                } else {
+                    console.warn('Failed to fetch trends data, skipping trends chart');
+                }
+                
+                // Load available classes for filter
+                loadAvailableClasses();
+                
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+                showError('Failed to load analytics data: ' + error.message);
+            }
+        }
+
+        // Update statistics cards
+        function updateStats(overview, classStats) {
+            document.getElementById('total-offenses').textContent = overview.totalFaults ? overview.totalFaults.toLocaleString() : '0';
+            document.getElementById('active-teachers').textContent = overview.totalTeachers ? overview.totalTeachers.toLocaleString() : '0';
+            document.getElementById('classes-monitored').textContent = classStats ? classStats.length : '0';
+            
+            // Calculate trend based on conduct data
+            const avgConduct = parseFloat(overview.average_conduct) || 0;
+            const trendValue = Math.round((avgConduct - 25) * 2);
+            const trendElement = document.getElementById('trend-direction');
+            trendElement.textContent = `${trendValue > 0 ? '+' : ''}${trendValue}%`;
+            trendElement.style.color = trendValue >= 0 ? '#4cc9f0' : '#f72585';
+        }
+
+        // Create charts
+        function createCharts(reportData) {
+            // Conduct Distribution Chart - Using data from dashboard-stats
+            const conductCtx = document.getElementById('conductChart');
+            if (conductCtx) {
+                if (charts.conductChart) {
+                    charts.conductChart.destroy();
+                }
+                
+                // Get conduct distribution from the dashboard stats
+                fetch('/api/director/dashboard-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(statsData => {
+                    const conductData = statsData.overview;
+                    
+                    charts.conductChart = new Chart(conductCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Excellent (32+)', 'Good (20-31)', 'Poor (<20)'],
+                            datasets: [{
+                                data: [
+                                    parseInt(conductData.excellent) || 0, 
+                                    parseInt(conductData.good) || 0, 
+                                    parseInt(conductData.poor) || 0
+                                ],
+                                backgroundColor: ['#4cc9f0', '#4361ee', '#f72585'],
+                                borderWidth: 2,
+                                borderColor: '#fff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 20,
+                                        usePointStyle: true,
+                                        font: {
+                                            size: 12
+                                        }
+                                    }
+                                }
+                            },
+                            cutout: '70%'
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading conduct data:', error);
+                });
+            }
+
+            // Class Performance Chart
+            const classCtx = document.getElementById('classChart');
+            if (classCtx && reportData.classReport && Array.isArray(reportData.classReport)) {
+                if (charts.classChart) {
+                    charts.classChart.destroy();
+                }
+                
+                const classLabels = reportData.classReport.map(c => c.student_class || 'Unknown');
+                const classData = reportData.classReport.map(c => parseFloat(c.avg_conduct) || 0);
+                
+                charts.classChart = new Chart(classCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: classLabels,
+                        datasets: [{
+                            label: 'Average Conduct Score',
+                            data: classData,
+                            backgroundColor: '#4361ee',
+                            borderColor: '#3a56d4',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 40,
+                                grid: {
+                                    drawBorder: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Conduct Score'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Class'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Teacher Activity Chart
+            const teacherCtx = document.getElementById('teacherChart');
+            if (teacherCtx && reportData.teacherActivity && Array.isArray(reportData.teacherActivity)) {
+                if (charts.teacherChart) {
+                    charts.teacherChart.destroy();
+                }
+                
+                const teacherLabels = reportData.teacherActivity.map(t => t.admin_name || 'Unknown');
+                const teacherData = reportData.teacherActivity.map(t => parseInt(t.faults_logged) || 0);
+                
+                charts.teacherChart = new Chart(teacherCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: teacherLabels,
+                        datasets: [{
+                            label: 'Faults Logged',
+                            data: teacherData,
+                            backgroundColor: '#7209b7',
+                            borderColor: '#5a07a5',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // This makes it horizontal
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: {
+                                    drawBorder: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Faults Logged'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Create trend chart
+        function createTrendChart(trendsData) {
+            const trendCtx = document.getElementById('trendChart');
+            if (trendCtx && trendsData.trends && Array.isArray(trendsData.trends)) {
+                if (charts.trendChart) {
+                    charts.trendChart.destroy();
+                }
+                
+                const trendLabels = trendsData.trends.map(t => t.period);
+                const trendData = trendsData.trends.map(t => parseInt(t.total_faults) || 0);
+                
+                charts.trendChart = new Chart(trendCtx, {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: [{
+                            label: 'Offenses Over Time',
+                            data: trendData,
+                            borderColor: '#f72585',
+                            backgroundColor: 'rgba(247, 37, 133, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    drawBorder: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Number of Offenses'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Time Period'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Refresh individual chart
+        function refreshChart(chartName) {
+            if (charts[chartName]) {
+                charts[chartName].destroy();
+                delete charts[chartName];
+            }
+            loadAnalyticsData();
+        }
+
+        // Load top offenses table
+        function loadTopOffenses(offensesData) {
+            const tableBody = document.getElementById('offenses-table-body');
+            if (!tableBody) return;
+            
+            if (!offensesData || !Array.isArray(offensesData) || offensesData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray);">
+                            No offense data available
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = '';
+            
+            offensesData.forEach(offense => {
+                const row = document.createElement('tr');
+                
+                // Convert string values to numbers safely
+                const avgPoints = parseFloat(offense.avg_points) || 0;
+                const occurrenceCount = parseInt(offense.occurrence_count) || 0;
+                
+                // Find most affected class (you'll need to implement this logic based on your data)
+                const mostAffectedClass = findMostAffectedClass(offense.fault_description) || 'N/A';
+                
+                // Determine trend based on occurrence count
+                let trendBadge = '';
+                if (occurrenceCount > 30) {
+                    trendBadge = '<span class="badge badge-warning">High</span>';
+                } else if (occurrenceCount > 15) {
+                    trendBadge = '<span class="badge badge-info">Medium</span>';
+                } else {
+                    trendBadge = '<span class="badge badge-success">Low</span>';
+                }
+                
+                row.innerHTML = `
+                    <td>${offense.fault_description || 'Unknown'}</td>
+                    <td>${occurrenceCount}</td>
+                    <td>${avgPoints.toFixed(1)}</td>
+                    <td>${mostAffectedClass}</td>
+                    <td>${trendBadge}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Helper function to find most affected class for an offense
+        function findMostAffectedClass(offenseDescription) {
+            // This is a placeholder - you'll need to implement this based on your actual data structure
+            // You might need to query your database or process the classReport data
+            if (!currentReportData || !currentReportData.classReport) return 'N/A';
+            
+            // Simple implementation: return the class with the lowest average conduct
+            const sortedClasses = [...currentReportData.classReport].sort((a, b) => 
+                (parseFloat(a.avg_conduct) || 0) - (parseFloat(b.avg_conduct) || 0)
+            );
+            
+            return sortedClasses[0]?.student_class || 'N/A';
+        }
+
+        // Load class performance table
+        function loadClassPerformance(classData) {
+            const tableBody = document.getElementById('classes-table-body');
+            if (!tableBody) return;
+            
+            if (!classData || !Array.isArray(classData) || classData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 2rem; color: var(--gray);">
+                            No class data available
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = '';
+            
+            classData.forEach(classItem => {
+                const row = document.createElement('tr');
+                
+                // Convert string values to numbers safely
+                const avgConduct = parseFloat(classItem.avg_conduct) || 0;
+                const totalStudents = parseInt(classItem.total_students) || 0;
+                const totalFaults = parseInt(classItem.total_faults) || 0;
+                
+                // Determine performance badge
+                let performanceBadge = '';
+                if (avgConduct >= 32) {
+                    performanceBadge = '<span class="badge badge-success">Excellent</span>';
+                } else if (avgConduct >= 20) {
+                    performanceBadge = '<span class="badge badge-info">Good</span>';
+                } else {
+                    performanceBadge = '<span class="badge badge-warning">Needs Attention</span>';
+                }
+                
+                row.innerHTML = `
+                    <td>${classItem.student_class || 'Unknown'}</td>
+                    <td>${totalStudents}</td>
+                    <td>${avgConduct.toFixed(1)}</td>
+                    <td>${totalFaults}</td>
+                    <td>${performanceBadge}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Load available classes for filter
+        async function loadAvailableClasses() {
             try {
                 const token = localStorage.getItem('token');
                 const response = await fetch('/api/classes', {
@@ -698,20 +1192,15 @@
 
                 if (response.ok) {
                     const classes = await response.json();
-                    const classFilter = document.getElementById('classFilter');
+                    const classFilter = document.getElementById('class-filter');
                     
+                    // Clear existing options except "All Classes"
+                    while (classFilter.children.length > 1) {
+                        classFilter.removeChild(classFilter.lastChild);
+                    }
+                    
+                    // Add class options
                     classes.forEach(className => {
-                        const option = document.createElement('option');
-                        option.value = className;
-                        option.textContent = className;
-                        classFilter.appendChild(option);
-                    });
-                } else {
-                    console.warn('Could not load classes, using default options');
-                    // Add some default classes for demo
-                    const defaultClasses = ['Grade 10A', 'Grade 9B', 'Grade 11C', 'Grade 8D'];
-                    const classFilter = document.getElementById('classFilter');
-                    defaultClasses.forEach(className => {
                         const option = document.createElement('option');
                         option.value = className;
                         option.textContent = className;
@@ -720,649 +1209,62 @@
                 }
             } catch (error) {
                 console.error('Error loading classes:', error);
-                // Add default classes even if there's an error
-                const defaultClasses = ['Grade 10A', 'Grade 9B', 'Grade 11C', 'Grade 8D'];
-                const classFilter = document.getElementById('classFilter');
-                defaultClasses.forEach(className => {
-                    const option = document.createElement('option');
-                    option.value = className;
-                    option.textContent = className;
-                    classFilter.appendChild(option);
-                });
             }
         }
 
-        // Load real analytics data from your server
-        async function loadAnalyticsData() {
-            try {
-                const token = localStorage.getItem('token');
-                const timeRange = document.getElementById('timeRange').value;
-                const classFilter = document.getElementById('classFilter').value;
-
-                console.log('Loading real analytics data for:', { timeRange, classFilter });
-                
-                // Show loading states
-                showLoadingStates();
-
-                // Load real data from your server endpoints
-                await loadRealAnalyticsData(timeRange, classFilter);
-                
-            } catch (error) {
-                console.error('Error loading analytics data:', error);
-                showError('Failed to load analytics data: ' + error.message);
-            }
+        // Apply filters
+        function applyFilters() {
+            loadAnalyticsData();
         }
 
-        // Load real data from your server
-        async function loadRealAnalyticsData(timeRange, classFilter) {
-            const token = localStorage.getItem('token');
-            
-            try {
-                // 1. Get dashboard stats from your existing endpoint
-                const statsResponse = await fetch('/api/director/dashboard-stats', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                let statsData = { overview: {} };
-                if (statsResponse.ok) {
-                    statsData = await statsResponse.json();
-                }
-
-                // 2. Get recent activity
-                const activityResponse = await fetch('/api/director/recent-activity', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                let activityData = { recentFaults: [], recentRequests: [] };
-                if (activityResponse.ok) {
-                    activityData = await activityResponse.json();
-                }
-
-                // 3. Get discipline report
-                const reportResponse = await fetch(`/api/director/discipline-report?period=${timeRange}${classFilter !== 'all' ? `&class=${classFilter}` : ''}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                let reportData = { classReport: [], topOffenses: [], teacherActivity: [] };
-                if (reportResponse.ok) {
-                    reportData = await reportResponse.json();
-                }
-
-                // 4. Get all students for at-risk analysis
-                const studentsResponse = await fetch('/api/director/students?limit=1000', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                let studentsData = { students: [] };
-                if (studentsResponse.ok) {
-                    studentsData = await studentsResponse.json();
-                }
-
-                // Process the real data
-                processRealData(statsData, activityData, reportData, studentsData, timeRange, classFilter);
-                
-            } catch (error) {
-                console.error('Error fetching real data:', error);
-                showError('Failed to load real data: ' + error.message);
-            }
-        }
-
-        function processRealData(statsData, activityData, reportData, studentsData, timeRange, classFilter) {
-            // Process KPI data with proper fallbacks
-            const summary = {
-                totalCases: statsData.overview?.totalFaults || 0,
-                avgConduct: statsData.overview?.average_conduct ? Math.round(statsData.overview.average_conduct) : 25,
-                atRiskStudents: statsData.overview?.poor || 0,
-                avgResponseTime: '2.3h',
-                casesTrend: '+12%',
-                conductTrend: '-5%',
-                riskTrend: '+8%',
-                responseTrend: '-15%'
-            };
-
-            // Process trend data from recent faults
-            const trendData = processTrendData(activityData.recentFaults || [], timeRange);
-            
-            // Process case types from report data
-            const caseTypes = processCaseTypes(reportData.topOffenses || []);
-            
-            // Process class performance
-            const classPerformance = processClassPerformance(reportData.classReport || []);
-            
-            // Process teacher activity
-            const teacherActivity = processTeacherActivity(reportData.teacherActivity || []);
-            
-            // Process top offenses
-            const topOffenses = processTopOffenses(reportData.topOffenses || []);
-            
-            // Process at-risk students
-            const atRiskStudents = processAtRiskStudents(studentsData.students || []);
-
-            analyticsData = {
-                summary,
-                trendData,
-                caseTypes,
-                classPerformance,
-                teacherActivity,
-                topOffenses,
-                atRiskStudents
-            };
-
-            console.log('Processed real data:', analyticsData);
-            
-            updateKPICards(analyticsData);
-            renderCharts(analyticsData);
-            updateTables(analyticsData);
-        }
-
-        function processTrendData(recentFaults, timeRange) {
-            // If no recent faults, create sample data
-            if (!recentFaults || recentFaults.length === 0) {
-                const dates = [];
-                const now = new Date();
-                for (let i = 29; i >= 0; i--) {
-                    const date = new Date();
-                    date.setDate(now.getDate() - i);
-                    dates.push({
-                        date: date.toISOString().split('T')[0],
-                        cases: Math.floor(Math.random() * 10) + 1,
-                        points: Math.floor(Math.random() * 50) + 10
-                    });
-                }
-                return dates;
-            }
-
-            // Group faults by date
-            const faultsByDate = {};
-            
-            recentFaults.forEach(fault => {
-                if (fault.formatted_date) {
-                    const date = fault.formatted_date.split(' ')[0]; // Get date part only
-                    if (!faultsByDate[date]) {
-                        faultsByDate[date] = { cases: 0, points: 0 };
-                    }
-                    faultsByDate[date].cases++;
-                    faultsByDate[date].points += fault.points_deducted || 0;
-                }
-            });
-
-            // Convert to array and sort by date
-            return Object.entries(faultsByDate)
-                .map(([date, data]) => ({
-                    date,
-                    cases: data.cases,
-                    points: data.points
-                }))
-                .sort((a, b) => new Date(a.date) - new Date(b.date))
-                .slice(-30); // Last 30 days
-        }
-
-        function processCaseTypes(topOffenses) {
-            if (!topOffenses || topOffenses.length === 0) {
-                return [
-                    { type: 'Behavior Issues', count: 45, color: '#4361ee' },
-                    { type: 'Academic', count: 32, color: '#7209b7' },
-                    { type: 'Attendance', count: 28, color: '#f72585' },
-                    { type: 'Other', count: 22, color: '#4cc9f0' }
-                ];
-            }
-
-            return topOffenses.slice(0, 5).map((offense, index) => ({
-                type: offense.fault_description || 'Unknown',
-                count: offense.occurrence_count || 0,
-                color: ['#4361ee', '#7209b7', '#f72585', '#4cc9f0', '#4895ef'][index]
-            }));
-        }
-
-        function processClassPerformance(classReport) {
-            if (!classReport || classReport.length === 0) {
-                return [
-                    { class: 'Grade 10A', avgConduct: 32, totalCases: 5 },
-                    { class: 'Grade 9B', avgConduct: 28, totalCases: 8 },
-                    { class: 'Grade 11C', avgConduct: 35, totalCases: 3 },
-                    { class: 'Grade 8D', avgConduct: 25, totalCases: 12 },
-                    { class: 'Grade 12A', avgConduct: 30, totalCases: 6 }
-                ];
-            }
-
-            return classReport.map(classData => ({
-                class: classData.student_class,
-                avgConduct: Math.round(classData.avg_conduct || 0),
-                totalCases: classData.total_faults || 0
-            })).sort((a, b) => b.avgConduct - a.avgConduct).slice(0, 5);
-        }
-
-        function processTeacherActivity(teacherActivity) {
-            if (!teacherActivity || teacherActivity.length === 0) {
-                return [
-                    { teacher: 'Mr. Johnson', casesLogged: 25, avgResponse: 2.1 },
-                    { teacher: 'Ms. Davis', casesLogged: 18, avgResponse: 1.8 },
-                    { teacher: 'Mr. Wilson', casesLogged: 32, avgResponse: 3.2 },
-                    { teacher: 'Ms. Thompson', casesLogged: 15, avgResponse: 1.5 },
-                    { teacher: 'Mr. Brown', casesLogged: 22, avgResponse: 2.8 }
-                ];
-            }
-
-            return teacherActivity.map(teacher => ({
-                teacher: teacher.admin_name,
-                casesLogged: teacher.faults_logged || 0,
-                avgResponse: teacher.avg_points_per_fault || 0
-            })).slice(0, 5);
-        }
-
-        function processTopOffenses(topOffenses) {
-            if (!topOffenses || topOffenses.length === 0) {
-                return [
-                    { type: 'Late Assignment', frequency: 67, avgPoints: 2.5, trend: 'up' },
-                    { type: 'Class Disruption', frequency: 45, avgPoints: 3.0, trend: 'stable' },
-                    { type: 'Missing Homework', frequency: 38, avgPoints: 2.0, trend: 'down' },
-                    { type: 'Inappropriate Behavior', frequency: 29, avgPoints: 4.5, trend: 'up' },
-                    { type: 'Uniform Violation', frequency: 22, avgPoints: 1.5, trend: 'stable' }
-                ];
-            }
-
-            return topOffenses.slice(0, 5).map(offense => ({
-                type: offense.fault_description || 'Unknown Offense',
-                frequency: offense.occurrence_count || 0,
-                avgPoints: parseFloat(offense.avg_points) || 0, // Ensure it's a number
-                trend: Math.random() > 0.6 ? 'up' : Math.random() > 0.3 ? 'stable' : 'down'
-            }));
-        }
-
-        function processAtRiskStudents(students) {
-            // Filter students with low conduct scores
-            const atRisk = students
-                .filter(student => student.student_conduct < 20)
-                .sort((a, b) => a.student_conduct - b.student_conduct)
-                .slice(0, 5)
-                .map(student => ({
-                    name: `${student.student_firstName} ${student.student_lastName}`,
-                    class: student.student_class,
-                    conduct: student.student_conduct,
-                    cases: student.total_faults || 0
-                }));
-
-            if (atRisk.length === 0) {
-                return [
-                    { name: 'John Smith', class: 'Grade 10A', conduct: 12, cases: 8 },
-                    { name: 'Sarah Johnson', class: 'Grade 9B', conduct: 15, cases: 6 },
-                    { name: 'Mike Wilson', class: 'Grade 11C', conduct: 18, cases: 5 }
-                ];
-            }
-
-            return atRisk;
-        }
-
-        function updateKPICards(data) {
-            console.log('Updating KPI cards with real data:', data);
-            
-            const summary = data.summary;
-            
-            // Safely update each element with null checks
-            const elements = {
-                'totalCases': summary.totalCases?.toLocaleString() || '0',
-                'avgConduct': summary.avgConduct?.toString() || '0',
-                'atRiskStudents': summary.atRiskStudents?.toString() || '0',
-                'avgResponse': summary.avgResponseTime || '0h',
-                'casesTrend': summary.casesTrend || '0%',
-                'conductTrend': summary.conductTrend || '0%',
-                'riskTrend': summary.riskTrend || '0%',
-                'responseTrend': summary.responseTrend || '0%'
-            };
-
-            Object.entries(elements).forEach(([id, value]) => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.textContent = value;
-                    console.log(`Updated ${id}: ${value}`);
-                } else {
-                    console.warn(`Element with id '${id}' not found - this is expected for demo`);
-                }
-            });
-
-            // Update trend colors
-            updateTrendColor('casesTrend', summary.casesTrend);
-            updateTrendColor('conductTrend', summary.conductTrend);
-            updateTrendColor('riskTrend', summary.riskTrend);
-            updateTrendColor('responseTrend', summary.responseTrend);
-        }
-
-        function updateTrendColor(elementId, trend) {
-            const element = document.getElementById(elementId);
-            if (!element) {
-                console.warn(`Trend element ${elementId} not found - this is expected for demo`);
-                return;
-            }
-            
-            const container = element.closest('.kpi-trend');
-            if (container) {
-                if (trend.startsWith('+')) {
-                    container.className = 'kpi-trend trend-up';
-                } else {
-                    container.className = 'kpi-trend trend-down';
-                }
-            }
-        }
-
-        function renderCharts(data) {
-            console.log('Rendering charts with real data...');
-            renderTrendChart(data.trendData);
-            renderTypeChart(data.caseTypes);
-            renderClassChart(data.classPerformance);
-            renderTeacherChart(data.teacherActivity);
-        }
-
-        function renderTrendChart(trendData) {
-            const canvas = document.getElementById('trendChart');
-            if (!canvas) {
-                console.error('Trend chart canvas not found');
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            const metric = document.getElementById('trendMetric').value;
-            
-            if (charts.trendChart) {
-                charts.trendChart.destroy();
-            }
-
-            // If no trend data, show empty chart
-            if (!trendData || trendData.length === 0) {
-                trendData = [{ date: new Date().toISOString().split('T')[0], cases: 0, points: 0 }];
-            }
-
-            charts.trendChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: trendData.map(d => {
-                        const date = new Date(d.date);
-                        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    }),
-                    datasets: [{
-                        label: metric === 'cases' ? 'Number of Cases' : 'Points Deducted',
-                        data: trendData.map(d => d[metric]),
-                        borderColor: '#4361ee',
-                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTypeChart(caseTypes) {
-            const canvas = document.getElementById('typeChart');
-            if (!canvas) {
-                console.error('Type chart canvas not found');
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            
-            if (charts.typeChart) {
-                charts.typeChart.destroy();
-            }
-
-            charts.typeChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: caseTypes.map(d => d.type),
-                    datasets: [{
-                        data: caseTypes.map(d => d.count),
-                        backgroundColor: caseTypes.map(d => d.color),
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                boxWidth: 12,
-                                padding: 15
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderClassChart(classPerformance) {
-            const canvas = document.getElementById('classChart');
-            if (!canvas) {
-                console.error('Class chart canvas not found');
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            
-            if (charts.classChart) {
-                charts.classChart.destroy();
-            }
-
-            charts.classChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: classPerformance.map(d => d.class),
-                    datasets: [{
-                        label: 'Average Conduct',
-                        data: classPerformance.map(d => d.avgConduct),
-                        backgroundColor: '#4361ee',
-                        borderColor: '#4361ee',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 40,
-                            grid: {
-                                color: 'rgba(0,0,0,0.05)'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderTeacherChart(teacherActivity) {
-            const canvas = document.getElementById('teacherChart');
-            if (!canvas) {
-                console.error('Teacher chart canvas not found');
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            
-            if (charts.teacherChart) {
-                charts.teacherChart.destroy();
-            }
-
-            charts.teacherChart = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: teacherActivity.map(d => d.teacher.split(' ')[1] || d.teacher),
-                    datasets: [{
-                        label: 'Cases Logged',
-                        data: teacherActivity.map(d => d.casesLogged),
-                        backgroundColor: 'rgba(114, 9, 183, 0.2)',
-                        borderColor: '#7209b7',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#7209b7'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(0,0,0,0.1)'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function updateTables(data) {
-            updateOffensesTable(data.topOffenses);
-            updateStudentsTable(data.atRiskStudents);
-        }
-
-        function updateOffensesTable(offenses) {
-            const tbody = document.getElementById('offensesTable');
-            if (!tbody) {
-                console.error('Offenses table body not found');
-                return;
-            }
-            
-            tbody.innerHTML = '';
-
-            offenses.forEach(offense => {
-                const row = document.createElement('tr');
-                const trendIcon = offense.trend === 'up' ? 'fa-arrow-up' : 
-                                offense.trend === 'down' ? 'fa-arrow-down' : 'fa-minus';
-                const trendColor = offense.trend === 'up' ? 'trend-up' : 
-                                 offense.trend === 'down' ? 'trend-down' : '';
-                
-                // Safely handle avgPoints - ensure it's a number before calling toFixed
-                const avgPoints = typeof offense.avgPoints === 'number' ? offense.avgPoints.toFixed(1) : '0.0';
-                
-                row.innerHTML = `
-                    <td>${offense.type}</td>
-                    <td>${offense.frequency}</td>
-                    <td>${avgPoints}</td>
-                    <td class="${trendColor}">
-                        <i class="fas ${trendIcon}"></i>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function updateStudentsTable(students) {
-            const tbody = document.getElementById('studentsTable');
-            if (!tbody) {
-                console.error('Students table body not found');
-                return;
-            }
-            
-            tbody.innerHTML = '';
-
-            students.forEach(student => {
-                const row = document.createElement('tr');
-                const badgeClass = student.conduct < 15 ? 'badge-danger' : 
-                                 student.conduct < 20 ? 'badge-warning' : 'badge-success';
-                
-                row.innerHTML = `
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div class="student-avatar">${student.name.split(' ').map(n => n[0]).join('')}</div>
-                            ${student.name}
-                        </div>
-                    </td>
-                    <td>${student.class}</td>
-                    <td><span class="badge ${badgeClass}">${student.conduct}</span></td>
-                    <td>${student.cases}</td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function updateTrendChart() {
-            if (analyticsData) {
-                renderTrendChart(analyticsData.trendData);
-            }
-        }
-
-        function showLoadingStates() {
-            const kpiGrid = document.getElementById('kpiGrid');
-            if (kpiGrid) {
-                kpiGrid.innerHTML = `
-                    <div class="kpi-card" style="grid-column: 1 / -1; text-align: center;">
-                        <div class="loading">
-                            <i class="fas fa-spinner fa-spin"></i> Loading analytics data...
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function showError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error';
-            errorDiv.innerHTML = `
-                <i class="fas fa-exclamation-circle"></i> ${message}
-            `;
-            
-            const mainContent = document.querySelector('.main-content');
-            if (mainContent) {
-                mainContent.insertBefore(errorDiv, mainContent.querySelector('.kpi-grid'));
-                
-                setTimeout(() => {
-                    errorDiv.remove();
-                }, 5000);
-            }
-        }
-
+        // Logout function
         function logout() {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             window.location.href = '/';
+        }
+
+        // Utility functions
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #f72585;
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                z-index: 1000;
+            `;
+            errorDiv.textContent = message;
+            document.body.appendChild(errorDiv);
+
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4cc9f0;
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+                z-index: 1000;
+            `;
+            successDiv.textContent = message;
+            document.body.appendChild(successDiv);
+
+            setTimeout(() => {
+                successDiv.remove();
+            }, 5000);
         }
     </script>
 </body>
