@@ -112,7 +112,7 @@ async function loadStudentRecords(studentId, studentCard) {
     
     try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5000/student/${studentId}/records`, {
+        const response = await axios.get(`/student/${studentId}/records`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -213,7 +213,7 @@ function displayStudentRecords(records, studentCard) {
                         ${record.removal_status === 'rejected' ? ' <span class="rejected-badge">(Rejected)</span>' : ''}
                     </div>
                 </div>
-                ${record.rejection_reason ? `<div class="rejection-reason"><strong>Rejection Reason:</strong> ${record.rejection_reason}</div>` : ''}
+                ${record.rejection_reason ? `<div class="rejection-reason"><strong>Response:</strong> ${record.rejection_reason}</div>` : ''}
                 ${record.teacher ? `<div class="record-teacher">By: ${record.teacher}</div>` : ''}
             `;
             
@@ -265,7 +265,7 @@ function displayStudentRecords(records, studentCard) {
                                 ${record.removal_status === 'rejected' ? ' <span class="rejected-badge">(Rejected)</span>' : ''}
                             </div>
                         </div>
-                        ${record.rejection_reason ? `<div class="rejection-reason"><strong>Rejection Reason:</strong> ${record.rejection_reason}</div>` : ''}
+                        ${record.rejection_reason ? `<div class="rejection-reason"><strong>Response:</strong> ${record.rejection_reason}</div>` : ''}
                         ${record.teacher ? `<div class="record-teacher">By: ${record.teacher}</div>` : ''}
                     `;
                     
@@ -494,7 +494,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -542,7 +542,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -676,7 +676,7 @@ function initDeductMarksForm() {
         
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post('http://localhost:5000/add-fault', {
+            const response = await axios.post('/add-fault', {
                 studentId,
                 faultDescription: description,
                 marksToDeduct: marks

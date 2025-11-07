@@ -794,7 +794,7 @@
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Authentication check
@@ -805,6 +805,81 @@
             window.location.href = '/login.html';
             return;
         }
+
+        // ==================== NETWORK UTILITY ====================
+        function getBaseURL() {
+            const protocol = window.location.protocol;
+            const hostname = window.location.hostname;
+            const port = window.location.port;
+            
+            let baseURL = `${protocol}//${hostname}`;
+            if (port && port !== '80' && port !== '443') {
+                baseURL += `:${port}`;
+            }
+            
+            console.log('📱 Teacher using base URL:', baseURL);
+            return baseURL;
+        }
+
+        // Enhanced axios instance for mobile
+        const mobileAxios = axios.create({
+            timeout: 30000
+        });
+
+        // Add request interceptor to use correct base URL
+        mobileAxios.interceptors.request.use(
+            (config) => {
+                // Convert relative URLs to absolute for mobile
+                if (config.url && !config.url.startsWith('http')) {
+                    config.url = `${getBaseURL()}${config.url}`;
+                }
+                
+                // Add authorization header
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+                
+                console.log('📱 Teacher API Request:', {
+                    url: config.url,
+                    method: config.method,
+                    isMobile: /mobile|android|iphone|ipad/i.test(navigator.userAgent)
+                });
+                
+                return config;
+            },
+            (error) => {
+                return Promise.reject(error);
+            }
+        );
+
+        // Add response interceptor for better error handling
+        mobileAxios.interceptors.response.use(
+            (response) => {
+                console.log('📱 Teacher API Response:', {
+                    status: response.status,
+                    url: response.config.url
+                });
+                return response;
+            },
+            (error) => {
+                console.error('📱 Teacher API Error:', {
+                    message: error.message,
+                    url: error.config?.url,
+                    status: error.response?.status
+                });
+                
+                // Enhanced mobile error messages
+                if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+                    error.message = 'Cannot connect to server. Please check:\n• Server is running\n• Your network connection\n• You are using the correct IP address';
+                }
+                
+                if (error.code === 'ECONNABORTED') {
+                    error.message = 'Request timeout. Please check your connection.';
+                }
+                
+                return Promise.reject(error);
+            }
+        );
 
         document.getElementById('usernameDisplay').textContent = user.username;
 
@@ -966,9 +1041,7 @@
             }
 
             try {
-                const response = await axios.get(`http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await mobileAxios.get(`/students/search?q=${encodeURIComponent(query)}`);
                 
                 if (response.data.length > 0) {
                     displaySearchResults(response.data, studentSearchResults, selectStudent);
@@ -1018,9 +1091,7 @@
         // Bulk request functions
         async function loadClasses() {
             try {
-                const response = await axios.get('http://localhost:5000/api/classes', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await mobileAxios.get('/api/classes');
 
                 const classSelect = document.getElementById('classSelection');
                 classSelect.innerHTML = '<option value="">Choose a class...</option>';
@@ -1033,7 +1104,7 @@
                 });
             } catch (error) {
                 console.error('Error loading classes:', error);
-                alert('Failed to load classes');
+                alert('Failed to load classes: ' + error.message);
             }
         }
 
@@ -1050,9 +1121,7 @@
             }
 
             try {
-                const response = await axios.get(`http://localhost:5000/api/students/class/${encodeURIComponent(className)}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await mobileAxios.get(`/api/students/class/${encodeURIComponent(className)}`);
 
                 currentClassStudents = response.data;
                 displayStudentsList(currentClassStudents);
@@ -1060,7 +1129,7 @@
                 
             } catch (error) {
                 console.error('Error loading students:', error);
-                alert('Failed to load students for this class');
+                alert('Failed to load students for this class: ' + error.message);
                 studentSelectionSection.style.display = 'none';
             }
         }
@@ -1182,12 +1251,7 @@
                     return;
                 }
 
-                const response = await axios.post('http://localhost:5000/api/removal-requests', formData, {
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await mobileAxios.post('/api/removal-requests', formData);
 
                 if (response.data.success) {
                     alert('Request submitted successfully!');
@@ -1229,12 +1293,7 @@
                     return;
                 }
 
-                const response = await axios.post('http://localhost:5000/api/bulk-removal-requests', formData, {
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const response = await mobileAxios.post('/api/bulk-removal-requests', formData);
 
                 if (response.data.success) {
                     alert(`Bulk request submitted successfully for ${formData.studentIds.length} students!`);
@@ -1278,17 +1337,15 @@
         async function loadRequests() {
             try {
                 const status = document.getElementById('requestStatusFilter').value;
-                const url = `http://localhost:5000/api/removal-requests${status === 'all' ? '' : `?status=${status}`}`;
+                const url = `/api/removal-requests${status === 'all' ? '' : `?status=${status}`}`;
 
-                const response = await axios.get(url, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await mobileAxios.get(url);
 
                 displayRequests(response.data);
             } catch (error) {
                 console.error('Error loading requests:', error);
                 document.getElementById('requestsList').innerHTML = 
-                    '<tr><td colspan="6" class="error">Failed to load requests</td></tr>';
+                    '<tr><td colspan="6" class="error">Failed to load requests: ' + error.message + '</td></tr>';
             }
         }
 
@@ -1337,9 +1394,7 @@
             const requestId = e.target.getAttribute('data-id');
             
             try {
-                const response = await axios.get(`http://localhost:5000/api/removal-requests/${requestId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await mobileAxios.get(`/api/removal-requests/${requestId}`);
 
                 const request = response.data;
                 
@@ -1371,7 +1426,7 @@
                 
             } catch (error) {
                 console.error('Error loading request details:', error);
-                alert('Failed to load request details');
+                alert('Failed to load request details: ' + error.message);
             }
         }
 
@@ -1380,9 +1435,7 @@
             if (!confirm('Are you sure you want to cancel this request?')) return;
             
             try {
-                const response = await axios.delete(`http://localhost:5000/api/teacher/removal-requests/${requestId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await mobileAxios.delete(`/api/teacher/removal-requests/${requestId}`);
                 
                 if (response.data.success) {
                     alert('Request canceled successfully');
@@ -1396,10 +1449,18 @@
                 });
                 alert(error.response?.data?.error || 
                      error.response?.data?.message || 
-                     'Failed to cancel request');
+                     'Failed to cancel request: ' + error.message);
             }
         }
+
+        // Test connectivity on page load
+        console.log('🚀 Teacher dashboard initialized');
+        console.log('📱 Mobile detection:', /mobile|android|iphone|ipad/i.test(navigator.userAgent));
+        console.log('📍 Current location:', window.location.href);
+        console.log('🌐 Base URL:', getBaseURL());
     });
 </script>
+</body>
+</html>
 </body>
 </html>

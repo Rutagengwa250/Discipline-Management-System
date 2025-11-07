@@ -33,6 +33,60 @@
             min-height: 100vh;
         }
 
+        /* Mobile Header */
+        .mobile-header {
+            display: none;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .mobile-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mobile-logo h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .hamburger-menu {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
+        /* Overlay for mobile menu */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 98;
+            display: none;
+        }
+        
+        .overlay.active {
+            display: block;
+        }
+
         .dashboard-container {
             display: grid;
             grid-template-columns: 280px 1fr;
@@ -45,6 +99,7 @@
             color: white;
             padding: 2rem 0;
             box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
         }
 
         .logo {
@@ -611,6 +666,11 @@
             100% { background-position: -200% 0; }
         }
 
+        /* Prevent body scroll when mobile menu is open */
+        body.menu-open {
+            overflow: hidden;
+        }
+
         /* Responsive Design */
         @media (max-width: 1024px) {
             .dashboard-container {
@@ -618,7 +678,21 @@
             }
             
             .sidebar {
-                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                width: 280px;
+                transform: translateX(-100%);
+                z-index: 99;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .mobile-header {
+                display: block;
             }
         }
 
@@ -678,12 +752,6 @@
             .pagination-controls {
                 justify-content: center;
             }
-        }
-
-        @media (max-width: 480px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
             
             .table-header {
                 flex-direction: column;
@@ -694,17 +762,48 @@
             .table-actions {
                 justify-content: center;
             }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h2 {
+                font-size: 1.5rem;
+            }
             
             .modal-content {
                 margin: 1rem;
+            }
+            
+            .action-cell .btn {
+                width: 100%;
+                justify-content: center;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <div class="mobile-header-content">
+            <div class="mobile-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <h1>DMS</h1>
+            </div>
+            <button class="hamburger-menu" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Overlay for mobile menu -->
+    <div class="overlay" id="overlay"></div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="logo">
                 <h1><i class="fas fa-graduation-cap"></i>DMS</h1>
                 <p>Director Dashboard</p>
@@ -714,6 +813,7 @@
                 <li><a href="#" class="active"><i class="fas fa-users"></i> Students</a></li>
                 <li><a href="Director.analytics.html"><i class="fas fa-chart-bar"></i> Analytics</a></li>
                 <li><a href="Director-report.html"><i class="fas fa-file-alt"></i> Reports</a></li>
+                <li><a href="Director-settings.html" ><i class="fas fa-cog"></i> Settings</a></li>
                 <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
         </aside>
@@ -899,7 +999,38 @@
             checkAuthentication();
             loadStudentsData();
             setupEventListeners();
+            setupMobileMenu();
         });
+
+        // Setup mobile menu functionality
+        function setupMobileMenu() {
+            const hamburgerMenu = document.getElementById('hamburger-menu');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            
+            if (hamburgerMenu && sidebar && overlay) {
+                hamburgerMenu.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+                });
+                
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                });
+                
+                // Close menu when clicking on nav links (mobile)
+                document.querySelectorAll('.nav-links a').forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                        document.body.style.overflow = '';
+                    });
+                });
+            }
+        }
 
         // Check if user is authenticated
         function checkAuthentication() {

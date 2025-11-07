@@ -941,37 +941,44 @@ function buildFullName(student) {
             fetchAndDisplaySortedStudents();
         });
 
-        async function fetchAndDisplaySortedStudents() {
-            try {
-                const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5000/students', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch students');
-                }
-
-                allStudents = await response.json();
-                filteredStudents = [...allStudents];
-                
-                // Update dashboard stats immediately
-                updateDashboardStats(allStudents);
-                
-                // Display the students
-                displaySortedStudents(sortStudentsByClassAndConduct(allStudents));
-
-            } catch (error) {
-                console.error('Error fetching students:', error);
-                handleApiError(error);
-                
-                const classLists = document.getElementById('class-lists');
-                classLists.innerHTML = '<p class="error">Failed to load student data. Please try again later.</p>';
+async function fetchAndDisplaySortedStudents() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/students', {
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch students');
         }
 
+        allStudents = await response.json();
+        
+        // FILTER OUT GRADUATED STUDENTS - Add these lines
+        allStudents = allStudents.filter(student => {
+            return !student.is_graduated && 
+                   student.status !== 'graduated' && 
+                   !student.graduated;
+        });
+        
+        filteredStudents = [...allStudents];
+        
+        // Update dashboard stats immediately
+        updateDashboardStats(allStudents);
+        
+        // Display the students
+        displaySortedStudents(sortStudentsByClassAndConduct(allStudents));
+
+    } catch (error) {
+        console.error('Error fetching students:', error);
+        handleApiError(error);
+        
+        const classLists = document.getElementById('class-lists');
+        classLists.innerHTML = '<p class="error">Failed to load student data. Please try again later.</p>';
+    }
+}
         function updateDashboardStats(students) {
             try {
                 const totalStudents = students.length;
@@ -1165,7 +1172,7 @@ const fullName = buildFullName(student);
                 
                 try {
                     const token = localStorage.getItem('token');
-                    const response = await fetch(`http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, {
+                    const response = await fetch(`/students/search?q=${encodeURIComponent(query)}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }
@@ -1192,7 +1199,7 @@ searchBtn.addEventListener('click', async function() {
     
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, {
+        const response = await fetch(`/students/search?q=${encodeURIComponent(query)}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

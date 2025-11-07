@@ -9,6 +9,9 @@ import pdfmake from 'pdfmake';
 import speakeasy from 'speakeasy';
 import { sendOTPEmail } from './emailService.js';
 import path from 'path';
+import cors from 'cors';
+import os from 'os';
+
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -17,13 +20,73 @@ const __dirname = dirname(__filename);
 const app = express();
 const SECRET_KEY = process.env.SECRET_KEY || 'resetpassword';
 
-// Serve static files
-app.use(express.static(join(__dirname, 'Admin-form')));
-app.use(express.static(join(__dirname, 'pages')));
-app.use(express.static(join(__dirname, '..', 'files')));
-app.use(express.static(join(__dirname, '..', 'student')));  // Serve student directory for registration form
+// ====================== CORS CONFIGURATION ====================== //
+app.use(cors({
+  origin: true, // Allow all origins for mobile testing
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// ====================== MIDDLEWARE ====================== //
+
+// Mobile request logger
+app.use((req, res, next) => {
+  const isMobile = /mobile|android|iphone|ipad/i.test(req.headers['user-agent'] || '');
+  if (isMobile) {
+    console.log('📱 Mobile Request:', {
+      method: req.method,
+      url: req.url,
+      ip: req.ip || req.connection.remoteAddress,
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date().toISOString()
+    });
+  }
+  next();
+});
+
+// Serve static files with CORS headers
+app.use(express.static(join(__dirname, 'Admin-form'), {
+  setHeaders: (res, path) => {
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
+app.use(express.static(join(__dirname, 'pages'), {
+  setHeaders: (res, path) => {
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
+app.use(express.static(join(__dirname, '..', 'files'), {
+  setHeaders: (res, path) => {
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
+app.use(express.static(join(__dirname, '..', 'student'), {
+  setHeaders: (res, path) => {
+    res.set('Access-Control-Allow-Origin', '*');
+  }
+}));
+
 // Middleware for JSON parsing
 app.use(express.json());
+
+// ====================== NETWORK TEST ENDPOINT ====================== //
+app.get('/api/network-test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Server is reachable from mobile',
+    clientInfo: {
+      ip: req.ip || req.connection.remoteAddress,
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date().toISOString()
+    },
+    serverInfo: {
+      host: req.hostname,
+      protocol: req.protocol,
+      port: 5000
+    }
+  });
+});
 
 // ====================== AUTHENTICATION MIDDLEWARE ====================== //
 
@@ -31,20 +94,42 @@ const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   
+  // Debug logging for mobile requests
+  const isMobile = /mobile|android|iphone|ipad/i.test(req.headers['user-agent'] || '');
+  
+  if (isMobile) {
+    console.log('📱 Mobile Auth Debug:', {
+      hasAuthHeader: !!authHeader,
+      tokenLength: token ? token.length : 0,
+      userAgent: req.headers['user-agent'],
+      ip: req.ip || req.connection.remoteAddress
+    });
+  }
+
   if (!token) {
-    return res.status(401).json({ error: 'Authorization token required' });
+    return res.status(401).json({ 
+      error: 'Authorization token required',
+      details: 'No token provided in Authorization header'
+    });
   }
 
   jwt.verify(token, SECRET_KEY, (err, decoded) => {
     if (err) {
-      console.error('Token verification failed:', err.message);
+      console.error('Token verification failed:', {
+        error: err.message,
+        userAgent: req.headers['user-agent'],
+        isMobile: isMobile
+      });
       
       if (err.name === 'TokenExpiredError') {
         return res.status(401).json({ 
           error: 'Session expired. Please login again.' 
         });
       }
-      return res.status(403).json({ error: 'Invalid authentication token' });
+      return res.status(403).json({ 
+        error: 'Invalid authentication token',
+        details: 'Token may be corrupted or malformed'
+      });
     }
     
     req.user = {
@@ -52,6 +137,15 @@ const authenticateToken = (req, res, next) => {
       username: decoded.username,
       role: decoded.role
     };
+    
+    if (isMobile) {
+      console.log('📱 Mobile User authenticated:', {
+        userId: req.user.userId,
+        username: req.user.username,
+        role: req.user.role
+      });
+    }
+    
     next();
   });
 };
@@ -67,18 +161,33 @@ const authorizeRole = (roles) => {
 
 // ====================== AUTHENTICATION ROUTES ====================== //
 
-
-
-// ====================== AUTHENTICATION ROUTES ====================== //
-
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     
-    console.log('Login attempt:', { username, password: password ? '***' : 'NULL' });
+    const isMobile = /mobile|android|iphone|ipad/i.test(req.headers['user-agent'] || '');
+    
+    if (isMobile) {
+      console.log('📱 Mobile Login attempt:', { 
+        username, 
+        password: password ? '***' : 'NULL',
+        ip: req.ip || req.connection.remoteAddress 
+      });
+    } else {
+      console.log('Login attempt:', { username, password: password ? '***' : 'NULL' });
+    }
 
     try {
         const user = await getUserByUsername(username);
-        console.log('User found in database:', user);
+        
+        if (isMobile) {
+          console.log('📱 User found in database:', { 
+            id: user?.id, 
+            username: user?.admin_name, 
+            role: user?.role_name 
+          });
+        } else {
+          console.log('User found in database:', user);
+        }
         
         if (!user) {
             console.log('User not found for username:', username);
@@ -182,6 +291,7 @@ function getRedirectUrl(role) {
         default: return '/dashboard.html';
     }
 }
+
 app.post('/send-otp', authenticateToken, async (req, res) => {
   try {
     const user = req.user;
@@ -432,22 +542,54 @@ app.post('/register', async (req, res) => {
 
 // Serve registration form
 app.get('/signup.html', (req, res) => {
-res.sendFile(join(__dirname, '..', 'student', 'signup.html'));
+  res.sendFile(join(__dirname, '..', 'student', 'signup.html'));
 });
 
 // ====================== STUDENT MANAGEMENT ROUTES ====================== //
 
 app.get('/students', authenticateToken, async (req, res) => {
   try {
-    const students = await selectAllStudents();
-    res.json(students);
+    const isMobile = /mobile|android|iphone|ipad/i.test(req.headers['user-agent'] || '');
+    
+    if (isMobile) {
+      console.log('📱 Mobile Student Fetch Request:', {
+        userId: req.user.userId,
+        role: req.user.role,
+        userAgent: req.headers['user-agent']
+      });
+    }
+
+    // Get all students and filter out graduated ones
+    const allStudents = await selectAllStudents();
+    const activeStudents = allStudents.filter(student => 
+      student.student_class !== 'Graduated' && 
+      student.student_class !== 'graduated'
+    );
+    
+    if (isMobile) {
+      console.log(`✅ Mobile Student Fetch Success: ${activeStudents.length} active students (filtered out ${allStudents.length - activeStudents.length} graduated students)`);
+    }
+    
+    res.json(activeStudents);
   } catch (err) {
-    console.error('Error fetching students:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    const isMobile = /mobile|android|iphone|ipad/i.test(req.headers['user-agent'] || '');
+    
+    console.error('Error fetching students:', {
+      error: err.message,
+      userId: req.user?.userId,
+      role: req.user?.role,
+      isMobile: isMobile
+    });
+    
+    res.status(500).json({ 
+      error: 'Server error', 
+      details: err.message,
+      mobileFriendly: isMobile ? 'Failed to load student data. Please check your connection.' : undefined
+    });
   }
 });
 
-// Enhanced student search with three-name support
+// Enhanced student search with three-name support - EXCLUDES GRADUATED STUDENTS
 app.get('/students/search', authenticateToken, async (req, res) => {
   const query = req.query.q;
 
@@ -460,7 +602,7 @@ app.get('/students/search', authenticateToken, async (req, res) => {
 
     const searchTerm = `%${query.trim()}%`;
     
-    // Enhanced search that handles first, middle, and last names
+    // Enhanced search that handles first, middle, and last names - EXCLUDES GRADUATED STUDENTS
     const [students] = await connection.query(
       `SELECT 
         id, 
@@ -471,12 +613,13 @@ app.get('/students/search', authenticateToken, async (req, res) => {
         student_conduct
       FROM student 
       WHERE 
-        student_firstName LIKE ? OR
+        (student_firstName LIKE ? OR
         student_middleName LIKE ? OR
         student_lastName LIKE ? OR
         CONCAT(student_firstName, ' ', student_lastName) LIKE ? OR
         CONCAT(student_firstName, ' ', student_middleName, ' ', student_lastName) LIKE ? OR
-        CONCAT(student_firstName, ' ', COALESCE(student_middleName, ''), ' ', student_lastName) LIKE ?
+        CONCAT(student_firstName, ' ', COALESCE(student_middleName, ''), ' ', student_lastName) LIKE ?)
+        AND student_class != 'Graduated'
       ORDER BY 
         student_firstName, student_lastName
       LIMIT 10`,
@@ -490,7 +633,7 @@ app.get('/students/search', authenticateToken, async (req, res) => {
   }
 });
 
-// Get student by name (supports full names with middle names)
+// Get student by name (supports full names with middle names) - EXCLUDES GRADUATED STUDENTS
 app.get('/student/:name', authenticateToken, async (req, res) => {
   const fullName = req.params.name;
 
@@ -501,20 +644,23 @@ app.get('/student/:name', authenticateToken, async (req, res) => {
     let query = `
       SELECT * FROM student 
       WHERE 
-        CONCAT(student_firstName, ' ', student_lastName) = ? OR
-        CONCAT(student_firstName, ' ', COALESCE(student_middleName, ''), ' ', student_lastName) LIKE ?
+        (CONCAT(student_firstName, ' ', student_lastName) = ? OR
+        CONCAT(student_firstName, ' ', COALESCE(student_middleName, ''), ' ', student_lastName) LIKE ?)
+        AND student_class != 'Graduated'
     `;
     let params = [fullName, `%${fullName}%`];
 
     // If we have multiple name parts, try different combinations
     if (nameParts.length >= 2) {
-      query += ` OR (student_firstName = ? AND student_lastName = ?)`;
+      query += ` OR (student_firstName = ? AND student_lastName = ? AND student_class != 'Graduated')`;
       params.push(nameParts[0], nameParts[nameParts.length - 1]);
     }
 
     // Also search by individual name parts
     nameParts.forEach(part => {
-      query += ` OR student_firstName LIKE ? OR student_lastName LIKE ? OR student_middleName LIKE ?`;
+      query += ` OR (student_firstName LIKE ? AND student_class != 'Graduated') 
+                OR (student_lastName LIKE ? AND student_class != 'Graduated') 
+                OR (student_middleName LIKE ? AND student_class != 'Graduated')`;
       params.push(`%${part}%`, `%${part}%`, `%${part}%`);
     });
 
@@ -532,7 +678,6 @@ app.get('/student/:name', authenticateToken, async (req, res) => {
 });
 
 // Get student by ID
-// Update the student records endpoint
 app.get('/student/:id/records', authenticateToken, async (req, res) => {
   try {
     const studentId = req.params.id;
@@ -559,7 +704,8 @@ app.get('/student/:id/records', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-// Add this route to your backend (after the student search route)
+
+// Get students by class - EXCLUDES GRADUATED STUDENTS
 app.get('/api/students/class/:className', authenticateToken, async (req, res) => {
   try {
     const className = req.params.className;
@@ -573,7 +719,8 @@ app.get('/api/students/class/:className', authenticateToken, async (req, res) =>
         student_class,
         student_conduct
       FROM student 
-      WHERE student_class = ?
+      WHERE student_class = ? 
+        AND student_class != 'Graduated'
       ORDER BY student_firstName, student_lastName`,
       [className]
     );
@@ -588,14 +735,15 @@ app.get('/api/students/class/:className', authenticateToken, async (req, res) =>
   }
 });
 
-// Add route to get available classes
-// Get available classes from student table
+// Get available classes - EXCLUDES GRADUATED CLASS
 app.get('/api/classes', authenticateToken, async (req, res) => {
   try {
     const [classes] = await connection.query(
       `SELECT DISTINCT student_class 
        FROM student 
-       WHERE student_class IS NOT NULL AND student_class != ''
+       WHERE student_class IS NOT NULL 
+         AND student_class != ''
+         AND student_class != 'Graduated'
        ORDER BY student_class`
     );
 
@@ -610,36 +758,8 @@ app.get('/api/classes', authenticateToken, async (req, res) => {
   }
 });
 
-// Get students by class from student table
-app.get('/api/students/class/:className', authenticateToken, async (req, res) => {
-  try {
-    const className = req.params.className;
-    
-    const [students] = await connection.query(
-      `SELECT 
-        id, 
-        student_firstName, 
-        student_middleName,
-        student_lastName, 
-        student_class,
-        student_conduct
-      FROM student 
-      WHERE student_class = ?
-      ORDER BY student_firstName, student_lastName`,
-      [className]
-    );
-
-    res.json(students);
-  } catch (err) {
-    console.error('Error fetching students by class:', err);
-    res.status(500).json({ 
-      error: 'Failed to fetch students',
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
-    });
-  }
-});
 // ====================== FAULT MANAGEMENT ROUTES ====================== //
-// Add this to your backend routes
+
 app.post('/api/bulk-removal-requests', authenticateToken, authorizeRole(['teacher']), async (req, res) => {
     const conn = await connection.getConnection();
     try {
@@ -726,6 +846,7 @@ app.post('/api/bulk-removal-requests', authenticateToken, authorizeRole(['teache
         conn.release();
     }
 });
+
 app.post('/add-fault', authenticateToken, async (req, res) => {
   const { studentId, faultDescription, marksToDeduct } = req.body;
 
@@ -1157,7 +1278,7 @@ app.get('/profile', authenticateToken, (req, res) => {
 
 // ====================== TEACHER REGISTRATION ROUTES ====================== //
 
-app.post('/register-teacher', authenticateToken, authorizeRole(['admin']), async (req, res) => {
+app.post('/register-teacher', authenticateToken, authorizeRole(['director']), async (req, res) => {
   const { username, password } = req.body;
   
   try {
@@ -1388,8 +1509,6 @@ app.patch('/api/permissions/:id/return', authenticateToken, async (req, res) => 
     res.status(500).json({ error: 'Failed to record return time' });
   }
 });
-
-// ====================== REPORT GENERATION ROUTES ====================== //
 
 // ====================== REPORT GENERATION ROUTES ====================== //
 
@@ -1768,10 +1887,10 @@ app.get('/api/permissions/:id/pdf', authenticateToken, async (req, res) => {
   }
 });
 
-// Director Dashboard Statistics
+// Director Dashboard Statistics - FIXED TO USE ONLY EXISTING COLUMNS
 app.get('/api/director/dashboard-stats', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
   try {
-    const [totalStudents] = await connection.query('SELECT COUNT(*) as total FROM student');
+    const [totalStudents] = await connection.query('SELECT COUNT(*) as total FROM student WHERE student_class != "Graduated"');
     const [totalTeachers] = await connection.query('SELECT COUNT(*) as total FROM administrator WHERE role_id IN (SELECT id FROM user_roles WHERE role_name = "teacher")');
     const [totalFaults] = await connection.query('SELECT COUNT(*) as total FROM faults WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)');
     const [pendingRequests] = await connection.query('SELECT COUNT(*) as total FROM removal_requests WHERE status = "pending"');
@@ -1784,6 +1903,7 @@ app.get('/api/director/dashboard-stats', authenticateToken, authorizeRole(['dire
         SUM(CASE WHEN student_conduct < 20 THEN 1 ELSE 0 END) as poor,
         AVG(student_conduct) as average_conduct
       FROM student
+      WHERE student_class != 'Graduated'
     `);
 
     // Class-wise statistics
@@ -1793,6 +1913,7 @@ app.get('/api/director/dashboard-stats', authenticateToken, authorizeRole(['dire
         COUNT(*) as student_count,
         AVG(student_conduct) as avg_conduct
       FROM student 
+      WHERE student_class != 'Graduated'
       GROUP BY student_class 
       ORDER BY avg_conduct DESC
     `);
@@ -1826,6 +1947,7 @@ app.get('/api/director/recent-activity', authenticateToken, authorizeRole(['dire
       FROM faults f
       JOIN student s ON f.student_id = s.id
       JOIN administrator a ON f.created_by = a.id
+      WHERE s.student_class != 'Graduated'
       ORDER BY f.created_at DESC
       LIMIT 15
     `);
@@ -1845,6 +1967,7 @@ app.get('/api/director/recent-activity', authenticateToken, authorizeRole(['dire
       FROM removal_requests rr
       JOIN student s ON rr.student_id = s.id
       JOIN administrator a ON rr.requester_id = a.id
+      WHERE s.student_class != 'Graduated'
       ORDER BY rr.created_at DESC
       LIMIT 15
     `);
@@ -1894,7 +2017,7 @@ app.get('/api/director/discipline-report', authenticateToken, authorizeRole(['di
         COUNT(DISTINCT f.student_id) as students_with_faults
       FROM student s
       LEFT JOIN faults f ON s.id = f.student_id ${dateCondition}
-      WHERE 1=1 ${classCondition}
+      WHERE s.student_class != 'Graduated' ${classCondition}
       GROUP BY s.student_class
       ORDER BY avg_conduct DESC
     `, params);
@@ -1966,7 +2089,7 @@ app.get('/api/director/conduct-trends', authenticateToken, authorizeRole(['direc
         COUNT(f.id) as total_faults,
         SUM(f.points_deducted) as total_points_deducted,
         COUNT(DISTINCT f.student_id) as unique_students,
-        (SELECT AVG(student_conduct) FROM student) as avg_conduct_score
+        (SELECT AVG(student_conduct) FROM student WHERE student_class != 'Graduated') as avg_conduct_score
       FROM faults f
       WHERE f.created_at >= DATE_SUB(NOW(), INTERVAL ${interval})
       GROUP BY period
@@ -1984,7 +2107,7 @@ app.get('/api/director/conduct-trends', authenticateToken, authorizeRole(['direc
   }
 });
 
-// All Students with Detailed Info
+// All Students with Detailed Info - EXCLUDES GRADUATED STUDENTS
 app.get('/api/director/students', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
   try {
     const { class: className, page = 1, limit = 50, conduct = 'all' } = req.query;
@@ -1999,7 +2122,7 @@ app.get('/api/director/students', authenticateToken, authorizeRole(['director', 
       FROM student s
       LEFT JOIN faults f ON s.id = f.student_id
       LEFT JOIN removal_requests rr ON s.id = rr.student_id
-      WHERE 1=1
+      WHERE s.student_class != 'Graduated'
     `;
 
     const params = [];
@@ -2029,11 +2152,13 @@ app.get('/api/director/students', authenticateToken, authorizeRole(['director', 
 
     const [students] = await connection.query(query, params);
 
-    // Get available classes for filter
+    // Get available classes for filter - EXCLUDES GRADUATED
     const [classes] = await connection.query(`
       SELECT DISTINCT student_class 
       FROM student 
-      WHERE student_class IS NOT NULL AND student_class != ''
+      WHERE student_class IS NOT NULL 
+        AND student_class != ''
+        AND student_class != 'Graduated'
       ORDER BY student_class
     `);
 
@@ -2103,9 +2228,10 @@ app.get('/api/director/students/:id', authenticateToken, authorizeRole(['directo
 app.get('/director-dashboard.html', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'director-dashboard.html'));
 });
-// Director routes for system management
-// Director routes for system management
-// Get system statistics with proper error handling
+
+// ===== SYSTEM SETTINGS & BACKUP ENDPOINTS =====
+
+// Get system statistics - FIXED TO USE ONLY EXISTING COLUMNS
 app.get('/api/director/system-stats', authenticateToken, authorizeRole(['director']), async (req, res) => {
   try {
     console.log('Fetching system stats...');
@@ -2123,7 +2249,7 @@ app.get('/api/director/system-stats', authenticateToken, authorizeRole(['directo
       console.log('Terms table not available, using default term');
     }
 
-    // Get student statistics with safe queries
+    // Get student statistics with safe queries - EXCLUDES GRADUATED
     let studentStats = { 
       total_students: 0, 
       promotable_students: 0, 
@@ -2139,6 +2265,7 @@ app.get('/api/director/system-stats', authenticateToken, authorizeRole(['directo
           SUM(CASE WHEN student_conduct < 20 THEN 1 ELSE 0 END) as repeat_students,
           SUM(CASE WHEN student_class LIKE 'S6%' OR student_class = 'S6' THEN 1 ELSE 0 END) as graduating_students
         FROM student
+        WHERE student_class != 'Graduated'
       `);
       if (stats.length > 0) {
         studentStats = stats[0];
@@ -2160,12 +2287,12 @@ app.get('/api/director/system-stats', authenticateToken, authorizeRole(['directo
       console.log('Backups table not available');
     }
 
-    // Count distinct classes safely
+    // Count distinct classes safely - EXCLUDES GRADUATED
     let classCount = 0;
     try {
       const [classes] = await connection.query(`
         SELECT COUNT(DISTINCT student_class) as class_count FROM student 
-        WHERE student_class != 'Graduated'
+        WHERE student_class != 'Graduated' AND student_class != ''
       `);
       if (classes.length > 0) {
         classCount = classes[0].class_count;
@@ -2199,7 +2326,7 @@ app.get('/api/director/system-stats', authenticateToken, authorizeRole(['directo
   }
 });
 
-// Reset conduct scores with proper transaction handling
+// Reset conduct scores - FIXED TO USE ONLY EXISTING COLUMNS
 app.post('/api/director/reset-conduct', authenticateToken, authorizeRole(['director']), async (req, res) => {
   const conn = await connection.getConnection();
   try {
@@ -2241,7 +2368,7 @@ app.post('/api/director/reset-conduct', authenticateToken, authorizeRole(['direc
 
     // 3. Archive current student conduct records if we have students and an archived term
     try {
-      const [students] = await conn.query('SELECT id, student_conduct FROM student WHERE student_conduct IS NOT NULL');
+      const [students] = await conn.query('SELECT id, student_conduct FROM student WHERE student_conduct IS NOT NULL AND student_class != "Graduated"');
       if (students.length > 0 && archivedTermId) {
         for (const student of students) {
           const [faultCount] = await conn.query('SELECT COUNT(*) as count FROM faults WHERE student_id = ?', [student.id]);
@@ -2253,7 +2380,7 @@ app.post('/api/director/reset-conduct', authenticateToken, authorizeRole(['direc
           `, [
             student.id, 
             archivedTermId,
-            student.student_conduct || 40.00, // Ensure we have a default value
+            student.student_conduct || 40.00,
             faultCount[0].count || 0
           ]);
         }
@@ -2261,11 +2388,10 @@ app.post('/api/director/reset-conduct', authenticateToken, authorizeRole(['direc
       }
     } catch (archiveError) {
       console.log('Error archiving conduct records:', archiveError.message);
-      // Continue with reset even if archiving fails
     }
 
-    // 4. Reset all student conduct scores to 40
-    await conn.query(`UPDATE student SET student_conduct = 40.00`);
+    // 4. Reset all student conduct scores to 40 - ONLY ACTIVE STUDENTS
+    await conn.query(`UPDATE student SET student_conduct = 40.00 WHERE student_class != 'Graduated'`);
 
     // 5. Archive and clear current faults if they exist
     try {
@@ -2277,7 +2403,6 @@ app.post('/api/director/reset-conduct', authenticateToken, authorizeRole(['direc
       }
     } catch (faultError) {
       console.log('Error handling faults:', faultError.message);
-      // Continue even if faults handling fails
     }
 
     await conn.commit();
@@ -2302,47 +2427,40 @@ app.post('/api/director/reset-conduct', authenticateToken, authorizeRole(['direc
   }
 });
 
-// Create backup with proper error handling
+// Create backup - FIXED TO USE ONLY EXISTING COLUMNS
 app.post('/api/director/create-backup', authenticateToken, authorizeRole(['director']), async (req, res) => {
   const conn = await connection.getConnection();
   try {
     await conn.beginTransaction();
 
-    const { backup_name, description, backup_type = 'full' } = req.body;
-    console.log('Creating backup:', backup_name, 'Type:', backup_type);
+    const { backup_name, description } = req.body;
+    console.log('Creating backup:', backup_name);
 
     const userId = req.user.userId;
 
     // Create backup record
     const [backup] = await conn.query(`
-      INSERT INTO backups (name, description, backup_type, created_by, created_at) 
-      VALUES (?, ?, ?, ?, NOW())
-    `, [backup_name, description, backup_type, userId]);
+      INSERT INTO backups (name, description, created_by, created_at) 
+      VALUES (?, ?, ?, NOW())
+    `, [backup_name, description, userId]);
 
     const backupId = backup.insertId;
 
-    // Perform backup based on type
-    if (backup_type === 'full' || backup_type === 'students') {
-      try {
-        const [students] = await conn.query('SELECT * FROM student');
-        for (const student of students) {
-          await conn.query(`
-            INSERT INTO backup_students 
-            (backup_id, student_id, student_firstName, student_middleName, student_lastName, 
-             student_class, student_conduct, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-          `, [backupId, student.id, student.student_firstName, student.student_middleName, 
-              student.student_lastName, student.student_class, student.student_conduct || 40.00]);
-        }
-        console.log(`Backed up ${students.length} students`);
-      } catch (studentError) {
-        console.log('Error backing up students:', studentError.message);
+    // Backup students - ONLY ACTIVE STUDENTS
+    try {
+      const [students] = await conn.query('SELECT * FROM student WHERE student_class != "Graduated"');
+      for (const student of students) {
+        await conn.query(`
+          INSERT INTO backup_students 
+          (backup_id, student_id, student_firstName, student_middleName, student_lastName, 
+           student_class, student_conduct, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+        `, [backupId, student.id, student.student_firstName, student.student_middleName, 
+            student.student_lastName, student.student_class, student.student_conduct || 40.00]);
       }
-    }
-
-    if (backup_type === 'full') {
-      // Backup other data as needed
-      console.log('Full backup completed');
+      console.log(`Backed up ${students.length} students`);
+    } catch (studentError) {
+      console.log('Error backing up students:', studentError.message);
     }
 
     await conn.commit();
@@ -2351,8 +2469,7 @@ app.post('/api/director/create-backup', authenticateToken, authorizeRole(['direc
     res.json({ 
       success: true, 
       message: 'Backup created successfully', 
-      backup_id: backupId,
-      backup_type: backup_type
+      backup_id: backupId
     });
 
   } catch (error) {
@@ -2392,240 +2509,8 @@ app.get('/api/director/backups', authenticateToken, authorizeRole(['director']),
     });
   }
 });
-// Restore from backup
-app.post('/api/director/restore-backup', authenticateToken, authorizeRole(['director']), async (req, res) => {
-  const conn = await connection.getConnection();
-  try {
-    await conn.beginTransaction();
 
-    const { backup_id, restore_type = 'full' } = req.body;
-    console.log('Restoring from backup:', backup_id, 'Type:', restore_type);
-
-    // Verify backup exists
-    const [backup] = await conn.query('SELECT * FROM backups WHERE id = ?', [backup_id]);
-    if (backup.length === 0) {
-      throw new Error('Backup not found');
-    }
-
-    if (restore_type === 'full' || restore_type === 'students') {
-      await restoreStudents(conn, backup_id);
-    }
-
-    if (restore_type === 'full' || restore_type === 'conduct') {
-      await restoreConductData(conn, backup_id);
-    }
-
-    await conn.commit();
-
-    res.json({ 
-      success: true, 
-      message: 'Backup restored successfully',
-      restored_backup: backup[0].name
-    });
-
-  } catch (error) {
-    await conn.rollback();
-    console.error('Error restoring backup:', error);
-    res.status(500).json({ error: 'Failed to restore backup: ' + error.message });
-  } finally {
-    conn.release();
-  }
-});
-
-async function restoreStudents(conn, backupId) {
-  // Get backup student data
-  const [backupStudents] = await conn.query(`
-    SELECT * FROM backup_students WHERE backup_id = ?
-  `, [backupId]);
-
-  // Restore students
-  for (const student of backupStudents) {
-    await conn.query(`
-      INSERT INTO student (id, student_firstName, student_middleName, student_lastName, student_class, student_conduct)
-      VALUES (?, ?, ?, ?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        student_firstName = VALUES(student_firstName),
-        student_middleName = VALUES(student_middleName),
-        student_lastName = VALUES(student_lastName),
-        student_class = VALUES(student_class),
-        student_conduct = VALUES(student_conduct)
-    `, [student.student_id, student.student_firstName, student.student_middleName,
-        student.student_lastName, student.student_class, student.student_conduct]);
-  }
-
-  console.log(`Restored ${backupStudents.length} students from backup`);
-}
-
-async function restoreConductData(conn, backupId) {
-  // Get backup conduct data
-  const [backupConduct] = await conn.query(`
-    SELECT * FROM backup_conduct_data WHERE backup_id = ?
-  `, [backupId]);
-
-  // Restore conduct scores
-  for (const conduct of backupConduct) {
-    await conn.query(`
-      UPDATE student SET student_conduct = ? WHERE id = ?
-    `, [conduct.conduct_score, conduct.student_id]);
-  }
-
-  console.log(`Restored conduct data for ${backupConduct.length} students from backup`);
-}
-
-// Export backup to file
-app.get('/api/director/export-backup/:id', authenticateToken, authorizeRole(['director']), async (req, res) => {
-  try {
-    const backupId = req.params.id;
-    
-    const [backupData] = await connection.query(`
-      SELECT 
-        b.name as backup_name,
-        b.description,
-        b.created_at,
-        a.username as created_by,
-        bs.student_firstName,
-        bs.student_lastName,
-        bs.student_class,
-        bs.student_conduct
-      FROM backups b
-      LEFT JOIN administrator a ON b.created_by = a.id
-      LEFT JOIN backup_students bs ON b.id = bs.backup_id
-      WHERE b.id = ?
-    `, [backupId]);
-
-    if (backupData.length === 0) {
-      return res.status(404).json({ error: 'Backup not found' });
-    }
-
-    // Create CSV export
-    const csvData = convertToCSV(backupData);
-    
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename=backup-${backupId}-${new Date().toISOString().split('T')[0]}.csv`);
-    res.send(csvData);
-
-  } catch (error) {
-    console.error('Error exporting backup:', error);
-    res.status(500).json({ error: 'Failed to export backup: ' + error.message });
-  }
-});
-
-function convertToCSV(data) {
-  if (data.length === 0) return '';
-  
-  const headers = Object.keys(data[0]).join(',');
-  const rows = data.map(row => 
-    Object.values(row).map(field => 
-      `"${String(field || '').replace(/"/g, '""')}"`
-    ).join(',')
-  );
-  
-  return [headers, ...rows].join('\n');
-}
-// Promote students endpoint
-app.post('/api/director/promote-students', authenticateToken, authorizeRole(['director']), async (req, res) => {
-  const conn = await connection.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const { academic_year, promotion_date } = req.body;
-    console.log('Promoting students for academic year:', academic_year);
-
-    // 1. Archive current academic year data
-    const [studentData] = await conn.query(`
-      SELECT 
-        COUNT(*) as student_count,
-        AVG(student_conduct) as avg_conduct
-      FROM student
-    `);
-
-    try {
-      await conn.query(`
-        INSERT INTO academic_year_history 
-        (academic_year, student_count, avg_conduct, promotion_date)
-        VALUES (?, ?, ?, ?)
-      `, [
-        academic_year, 
-        studentData[0].student_count, 
-        studentData[0].avg_conduct || 40, 
-        promotion_date
-      ]);
-    } catch (historyError) {
-      console.log('Error creating academic year history:', historyError.message);
-    }
-
-    // 2. Promote students based on conduct scores
-    // Students with conduct >= 20 get promoted, others repeat
-    await conn.query(`
-      UPDATE student 
-      SET student_class = 
-        CASE 
-          WHEN student_conduct >= 20 THEN 
-            CASE 
-              WHEN student_class = 'S1' THEN 'S2'
-              WHEN student_class = 'S2' THEN 'S3'
-              WHEN student_class = 'S3' THEN 'S4'
-              WHEN student_class = 'S4' THEN 'S5'
-              WHEN student_class = 'S5' THEN 'S6'
-              WHEN student_class LIKE 'S6%' THEN 'Graduated'
-              ELSE student_class
-            END
-          ELSE student_class  -- Repeat the class
-        END,
-        student_conduct = 40  -- Reset conduct for new academic year
-      WHERE student_class != 'Graduated'
-    `);
-
-    // 3. Handle graduated students
-    try {
-      const [graduatedStudents] = await conn.query(`
-        SELECT s.* FROM student s 
-        WHERE s.student_class = 'Graduated'
-      `);
-
-      if (graduatedStudents.length > 0) {
-        for (const student of graduatedStudents) {
-          await conn.query(`
-            INSERT INTO alumni_students 
-            (student_id, student_firstName, student_middleName, student_lastName, student_class, student_conduct)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `, [
-            student.id,
-            student.student_firstName,
-            student.student_middleName,
-            student.student_lastName,
-            student.student_class,
-            student.student_conduct
-          ]);
-        }
-        
-        await conn.query(`DELETE FROM student WHERE student_class = 'Graduated'`);
-      }
-    } catch (graduationError) {
-      console.log('Error handling graduated students:', graduationError.message);
-    }
-
-    await conn.commit();
-
-    console.log('Student promotion completed successfully');
-    res.json({ 
-      success: true, 
-      message: 'Student promotion completed successfully'
-    });
-
-  } catch (error) {
-    await conn.rollback();
-    console.error('Error promoting students:', error);
-    res.status(500).json({ 
-      error: 'Failed to promote students',
-      details: error.message 
-    });
-  } finally {
-    conn.release();
-  }
-});
-
-// Delete backup endpoint
+// Delete backup
 app.delete('/api/director/backups/:id', authenticateToken, authorizeRole(['director']), async (req, res) => {
   const conn = await connection.getConnection();
   try {
@@ -2633,7 +2518,7 @@ app.delete('/api/director/backups/:id', authenticateToken, authorizeRole(['direc
 
     const backupId = req.params.id;
 
-    // Delete backup and related records (cascade should handle this)
+    // Delete backup and related records
     const [result] = await conn.query('DELETE FROM backups WHERE id = ?', [backupId]);
 
     if (result.affectedRows === 0) {
@@ -2659,7 +2544,7 @@ app.delete('/api/director/backups/:id', authenticateToken, authorizeRole(['direc
   }
 });
 
-// Export backup endpoint
+// Export backup to CSV
 app.get('/api/director/export-backup/:id', authenticateToken, authorizeRole(['director']), async (req, res) => {
   try {
     const backupId = req.params.id;
@@ -2684,8 +2569,14 @@ app.get('/api/director/export-backup/:id', authenticateToken, authorizeRole(['di
       return res.status(404).json({ error: 'Backup not found' });
     }
 
-    // Create CSV export
-    const csvData = convertToCSV(backupData);
+    // Create CSV data
+    const headers = Object.keys(backupData[0]).join(',');
+    const rows = backupData.map(row => 
+      Object.values(row).map(field => 
+        `"${String(field || '').replace(/"/g, '""')}"`
+      ).join(',')
+    );
+    const csvData = [headers, ...rows].join('\n');
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename=backup-${backupId}-${new Date().toISOString().split('T')[0]}.csv`);
@@ -2700,47 +2591,46 @@ app.get('/api/director/export-backup/:id', authenticateToken, authorizeRole(['di
   }
 });
 
-// Restore backup endpoint
+// Restore from backup
 app.post('/api/director/restore-backup', authenticateToken, authorizeRole(['director']), async (req, res) => {
   const conn = await connection.getConnection();
   try {
     await conn.beginTransaction();
 
-    const { backup_id, restore_type = 'full' } = req.body;
+    const { backup_id } = req.body;
 
     // Verify backup exists
-    const [backup] = await conn.query('SELECT * FROM backups WHERE id = ?', [backupId]);
+    const [backup] = await conn.query('SELECT * FROM backups WHERE id = ?', [backup_id]);
     if (backup.length === 0) {
       throw new Error('Backup not found');
     }
 
-    if (restore_type === 'full' || restore_type === 'students') {
-      // Get backup student data
-      const [backupStudents] = await conn.query(`
-        SELECT * FROM backup_students WHERE backup_id = ?
-      `, [backup_id]);
+    // Get backup student data
+    const [backupStudents] = await conn.query(`
+      SELECT * FROM backup_students WHERE backup_id = ?
+    `, [backup_id]);
 
-      // Restore students
-      for (const student of backupStudents) {
-        await conn.query(`
-          INSERT INTO student (id, student_firstName, student_middleName, student_lastName, student_class, student_conduct)
-          VALUES (?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE
-            student_firstName = VALUES(student_firstName),
-            student_middleName = VALUES(student_middleName),
-            student_lastName = VALUES(student_lastName),
-            student_class = VALUES(student_class),
-            student_conduct = VALUES(student_conduct)
-        `, [student.student_id, student.student_firstName, student.student_middleName,
-            student.student_lastName, student.student_class, student.student_conduct]);
-      }
+    // Restore students
+    for (const student of backupStudents) {
+      await conn.query(`
+        INSERT INTO student (id, student_firstName, student_middleName, student_lastName, student_class, student_conduct)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          student_firstName = VALUES(student_firstName),
+          student_middleName = VALUES(student_middleName),
+          student_lastName = VALUES(student_lastName),
+          student_class = VALUES(student_class),
+          student_conduct = VALUES(student_conduct)
+      `, [student.student_id, student.student_firstName, student.student_middleName,
+          student.student_lastName, student.student_class, student.student_conduct]);
     }
 
     await conn.commit();
 
     res.json({ 
       success: true, 
-      message: 'Backup restored successfully'
+      message: 'Backup restored successfully',
+      students_restored: backupStudents.length
     });
 
   } catch (error) {
@@ -2755,18 +2645,694 @@ app.post('/api/director/restore-backup', authenticateToken, authorizeRole(['dire
   }
 });
 
-function convertToCSV(data) {
-  if (data.length === 0) return '';
-  
-  const headers = Object.keys(data[0]).join(',');
-  const rows = data.map(row => 
-    Object.values(row).map(field => 
-      `"${String(field || '').replace(/"/g, '""')}"`
-    ).join(',')
-  );
-  
-  return [headers, ...rows].join('\n');
-}
+// Promote students endpoint - FIXED TO USE ONLY EXISTING COLUMNS
+app.post('/api/director/promote-students', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { academic_year, promotion_date, repeat_student_ids = [], promotion_data = {} } = req.body;
+    console.log('Promoting students for academic year:', academic_year);
+    console.log('Repeat student IDs:', repeat_student_ids);
+    console.log('Promotion data received:', Object.keys(promotion_data).length, 'students');
+
+    // 1. Archive current academic year data (optional)
+    try {
+      const [studentData] = await conn.query(`
+        SELECT 
+          COUNT(*) as student_count,
+          AVG(student_conduct) as avg_conduct
+        FROM student
+        WHERE student_class != 'Graduated'
+      `);
+
+      await conn.query(`
+        INSERT INTO academic_year_history 
+        (academic_year, student_count, avg_conduct, promotion_date)
+        VALUES (?, ?, ?, ?)
+      `, [
+        academic_year, 
+        studentData[0].student_count, 
+        studentData[0].avg_conduct || 40, 
+        promotion_date
+      ]);
+    } catch (historyError) {
+      console.log('Error creating academic year history:', historyError.message);
+    }
+
+    // 2. Process promotion based on frontend data
+    const promotionResults = {
+      promoted: 0,
+      repeated: 0,
+      graduated: 0,
+      errors: 0
+    };
+
+    // Get all active students to process
+    const [allStudents] = await conn.query('SELECT id, student_class FROM student WHERE student_class != "Graduated"');
+
+    for (const student of allStudents) {
+      const studentId = student.id;
+      const studentData = promotion_data[studentId];
+      
+      try {
+        if (studentData) {
+          // Use the promotion data from frontend
+          const { next_class, should_repeat, current_class } = studentData;
+          
+          if (should_repeat) {
+            // Student repeats - reset conduct only
+            await conn.query(`
+              UPDATE student 
+              SET student_conduct = 40
+              WHERE id = ?
+            `, [studentId]);
+            promotionResults.repeated++;
+            console.log(`Student ${studentId} repeating ${current_class}`);
+            
+          } else {
+            // Student promotes/graduates - update class and reset conduct
+            await conn.query(`
+              UPDATE student 
+              SET student_class = ?, student_conduct = 40
+              WHERE id = ?
+            `, [next_class, studentId]);
+            
+            if (next_class === 'Graduated') {
+              promotionResults.graduated++;
+              console.log(`Student ${studentId} graduated from ${current_class}`);
+            } else {
+              promotionResults.promoted++;
+              console.log(`Student ${studentId} promoted from ${current_class} to ${next_class}`);
+            }
+          }
+          
+        } else {
+          // Fallback: Use repeat_student_ids array (legacy support)
+          const shouldRepeat = repeat_student_ids.includes(studentId);
+          
+          if (shouldRepeat) {
+            // Student repeats
+            await conn.query(`UPDATE student SET student_conduct = 40 WHERE id = ?`, [studentId]);
+            promotionResults.repeated++;
+          } else {
+            // Student promotes - use backend logic as fallback
+            let newClass = student.student_class;
+            
+            if (student.student_class === 'S1') newClass = 'S2';
+            else if (student.student_class === 'S2') newClass = 'S3';
+            else if (student.student_class === 'S3') newClass = 'S4';
+            else if (student.student_class === 'S4') newClass = 'S5';
+            else if (student.student_class.startsWith('S5')) {
+              newClass = student.student_class.replace('S5', 'S6');
+            } else if (student.student_class.startsWith('S6') || student.student_class === 'S3') {
+              newClass = 'Graduated';
+            }
+            
+            await conn.query(`UPDATE student SET student_class = ?, student_conduct = 40 WHERE id = ?`, [newClass, studentId]);
+            
+            if (newClass === 'Graduated') {
+              promotionResults.graduated++;
+            } else if (newClass !== student.student_class) {
+              promotionResults.promoted++;
+            } else {
+              promotionResults.repeated++;
+            }
+          }
+        }
+      } catch (studentError) {
+        console.error(`Error processing student ${studentId}:`, studentError);
+        promotionResults.errors++;
+      }
+    }
+
+    // 3. Handle graduated students - move to alumni
+    try {
+      const [graduatedStudents] = await conn.query(`
+        SELECT s.* FROM student s 
+        WHERE s.student_class = 'Graduated'
+      `);
+
+      for (const student of graduatedStudents) {
+        const [existingAlumni] = await conn.query(`
+          SELECT id FROM alumni_students WHERE student_id = ?
+        `, [student.id]);
+
+        if (existingAlumni.length === 0) {
+          await conn.query(`
+            INSERT INTO alumni_students 
+            (student_id, student_firstName, student_middleName, student_lastName, student_class, student_conduct)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `, [
+            student.id,
+            student.student_firstName,
+            student.student_middleName,
+            student.student_lastName,
+            student.student_class,
+            student.student_conduct
+          ]);
+        }
+      }
+      console.log(`Processed ${graduatedStudents.length} graduated students`);
+    } catch (graduationError) {
+      console.log('Error handling graduated students:', graduationError.message);
+    }
+
+    await conn.commit();
+
+    console.log('Student promotion completed successfully:', promotionResults);
+    res.json({ 
+      success: true, 
+      message: 'Student promotion completed successfully',
+      results: promotionResults
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error promoting students:', error);
+    res.status(500).json({ 
+      error: 'Failed to promote students',
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+
+// ===== CURRENT TERM MANAGEMENT ENDPOINTS =====
+
+// Get current term settings
+app.get('/api/director/current-term', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  try {
+    console.log('Fetching current term settings...');
+    
+    // Get current active term
+    const [currentTerm] = await connection.query(`
+      SELECT * FROM terms WHERE status = 'active' ORDER BY start_date DESC LIMIT 1
+    `);
+
+    if (currentTerm.length === 0) {
+      // Create a default term if none exists
+      const defaultTermName = 'Term 1';
+      const defaultStartDate = new Date().toISOString().split('T')[0];
+      const defaultEndDate = new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString().split('T')[0];
+      
+      const [newTerm] = await connection.query(`
+        INSERT INTO terms (name, start_date, end_date, status) 
+        VALUES (?, ?, ?, 'active')
+      `, [defaultTermName, defaultStartDate, defaultEndDate]);
+
+      return res.json({
+        id: newTerm.insertId,
+        name: defaultTermName,
+        start_date: defaultStartDate,
+        end_date: defaultEndDate,
+        status: 'active',
+        academic_year: new Date().getFullYear().toString(),
+        created_at: new Date().toISOString()
+      });
+    }
+
+    const term = currentTerm[0];
+    const startDate = new Date(term.start_date);
+    const academicYear = startDate.getFullYear().toString();
+
+    res.json({
+      ...term,
+      academic_year: academicYear
+    });
+
+  } catch (error) {
+    console.error('Error fetching current term:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch current term',
+      details: error.message 
+    });
+  }
+});
+
+// Update current term settings
+app.put('/api/director/current-term', authenticateToken, authorizeRole(['director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const { term_name, academic_year, term_start, term_end } = req.body;
+    console.log('Updating current term settings:', { term_name, academic_year, term_start, term_end });
+
+    // Validate required fields
+    if (!term_name || !term_start || !term_end) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: term_name, term_start, term_end are required' 
+      });
+    }
+
+    // Validate dates
+    if (new Date(term_end) <= new Date(term_start)) {
+      return res.status(400).json({ 
+        error: 'Term end date must be after term start date' 
+      });
+    }
+
+    // Get current active term
+    const [currentTerm] = await conn.query(`
+      SELECT id FROM terms WHERE status = 'active' ORDER BY start_date DESC LIMIT 1
+    `);
+
+    if (currentTerm.length === 0) {
+      // Create new term if none exists
+      const [newTerm] = await conn.query(`
+        INSERT INTO terms (name, start_date, end_date, status) 
+        VALUES (?, ?, ?, 'active')
+      `, [term_name, term_start, term_end]);
+
+      await conn.commit();
+      
+      return res.json({ 
+        success: true, 
+        message: 'Term created successfully',
+        term: {
+          id: newTerm.insertId,
+          name: term_name,
+          start_date: term_start,
+          end_date: term_end,
+          status: 'active',
+          academic_year: academic_year
+        }
+      });
+    }
+
+    // Update existing term
+    await conn.query(`
+      UPDATE terms 
+      SET name = ?, start_date = ?, end_date = ?
+      WHERE status = 'active'
+    `, [term_name, term_start, term_end]);
+
+    await conn.commit();
+
+    console.log('Term settings updated successfully');
+    res.json({ 
+      success: true, 
+      message: 'Term settings updated successfully',
+      term: {
+        id: currentTerm[0].id,
+        name: term_name,
+        start_date: term_start,
+        end_date: term_end,
+        status: 'active',
+        academic_year: academic_year
+      }
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('Error updating term settings:', error);
+    res.status(500).json({ 
+      error: 'Failed to update term settings',
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+// Get all administrators
+app.get('/api/director/admins', authenticateToken, authorizeRole(['director']), async (req, res) => {
+    try {
+        console.log('🔍 Fetching ADMIN role users only...');
+        
+        // Only get users with admin role (role_id = 1)
+        const [admins] = await connection.query(`
+            SELECT id, username, email, role_id, admin_name
+            FROM administrator 
+            WHERE role_id = 1  -- ONLY admin role
+            ORDER BY username
+        `);
+
+        console.log('✅ Found ADMIN users:', admins);
+
+        const adminsWithRoles = admins.map(admin => ({
+            id: admin.id,
+            username: admin.username,
+            email: admin.email || 'No email',
+            role: 'admin', // Always admin since we filtered by role_id = 1
+            name: admin.admin_name || admin.username
+        }));
+
+        console.log('✅ Processed ADMIN users:', adminsWithRoles.length);
+        res.json(adminsWithRoles);
+        
+    } catch (error) {
+        console.error('❌ Error fetching admins:', error);
+        res.json([]); // Return empty array on error
+    }
+});
+// Get specific admin details
+// Update admin credentials - ONLY FOR ADMIN ROLE (role_id = 1)
+app.put('/api/director/admins/:id/credentials', authenticateToken, authorizeRole(['director']), async (req, res) => {
+    const conn = await connection.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        const adminId = req.params.id;
+        const { username, email, password, update_reason } = req.body;
+        const directorId = req.user.userId;
+
+        console.log('🔄 Updating credentials for admin ID:', adminId);
+
+        // Verify admin exists AND has admin role (role_id = 1)
+        const [admin] = await conn.query(`
+            SELECT * FROM administrator 
+            WHERE id = ? AND role_id = 1
+        `, [adminId]);
+        
+        if (admin.length === 0) {
+            return res.status(404).json({ 
+                error: 'Administrator not found or user is not an admin' 
+            });
+        }
+
+        // Check if username already exists (excluding current admin)
+        if (username !== admin[0].username) {
+            const [existing] = await conn.query(
+                'SELECT id FROM administrator WHERE username = ? AND id != ?',
+                [username, adminId]
+            );
+            if (existing.length > 0) {
+                return res.status(400).json({ error: 'Username already exists' });
+            }
+        }
+
+        // Update admin credentials
+        let updateQuery = 'UPDATE administrator SET username = ?, email = ?';
+        const updateParams = [username, email];
+
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updateQuery += ', admin_password = ?';
+            updateParams.push(hashedPassword);
+        }
+
+        updateQuery += ' WHERE id = ? AND role_id = 1'; // Only update admin role
+        updateParams.push(adminId);
+
+        const [result] = await conn.query(updateQuery, updateParams);
+
+        if (result.affectedRows === 0) {
+            throw new Error('No administrator found with admin role');
+        }
+
+        // Log the credential change (optional - if table exists)
+        try {
+            await conn.query(`
+                INSERT INTO admin_credential_history 
+                (admin_id, changed_by, change_type, old_username, new_username, 
+                 old_email, new_email, change_reason, changed_at)
+                VALUES (?, ?, 'credential_update', ?, ?, ?, ?, ?, NOW())
+            `, [
+                adminId,
+                directorId,
+                admin[0].username,
+                username,
+                admin[0].email,
+                email,
+                update_reason || 'No reason provided'
+            ]);
+        } catch (logError) {
+            console.log('Note: Could not log credential change:', logError.message);
+        }
+
+        await conn.commit();
+
+        console.log('✅ Admin credentials updated successfully for ID:', adminId);
+        res.json({
+            success: true,
+            message: 'Administrator credentials updated successfully',
+            admin_id: adminId,
+            new_username: username
+        });
+
+    } catch (error) {
+        await conn.rollback();
+        console.error('❌ Error updating admin credentials:', error);
+        res.status(500).json({ 
+            error: 'Failed to update administrator credentials',
+            details: error.message 
+        });
+    } finally {
+        conn.release();
+    }
+});
+// Get specific admin details - SIMPLE VERSION (NO JOIN)
+app.get('/api/director/admins/:id', authenticateToken, authorizeRole(['director']), async (req, res) => {
+    try {
+        const adminId = req.params.id;
+        console.log('🔍 Fetching admin details for ID:', adminId);
+
+        // SIMPLE query - no JOIN, no ambiguous columns
+        const [admins] = await connection.query(`
+            SELECT 
+                id,
+                username,
+                email,
+                role_id,
+                admin_name
+            FROM administrator 
+            WHERE id = ?
+        `, [adminId]);
+
+        if (admins.length === 0) {
+            console.log('❌ Admin not found with ID:', adminId);
+            return res.status(404).json({ 
+                error: 'Administrator not found' 
+            });
+        }
+
+        const admin = admins[0];
+        
+        // Only allow admin role users (role_id = 1)
+        if (admin.role_id !== 1) {
+            console.log('❌ User is not an admin, role_id:', admin.role_id);
+            return res.status(403).json({ 
+                error: 'Only admin role users can have their credentials updated' 
+            });
+        }
+
+        const adminDetails = {
+            id: admin.id,
+            username: admin.username,
+            email: admin.email || 'No email',
+            role: 'admin',
+            name: admin.admin_name || admin.username,
+            role_id: admin.role_id
+        };
+
+        console.log('✅ Admin details found:', adminDetails);
+        res.json(adminDetails);
+
+    } catch (error) {
+        console.error('❌ Error fetching admin details:', error);
+        res.status(500).json({ 
+            error: 'Failed to fetch administrator details',
+            details: error.message 
+        });
+    }
+});
+
+// Update admin credentials
+app.put('/api/director/admins/:id/credentials', authenticateToken, authorizeRole(['director']), async (req, res) => {
+    const conn = await connection.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        const adminId = req.params.id;
+        const { username, email, password, update_reason } = req.body;
+        const directorId = req.user.userId;
+
+        // Verify admin exists
+        const [admin] = await conn.query('SELECT * FROM administrator WHERE id = ?', [adminId]);
+        if (admin.length === 0) {
+            return res.status(404).json({ error: 'Administrator not found' });
+        }
+
+        // Check if username already exists (excluding current admin)
+        if (username !== admin[0].username) {
+            const [existing] = await conn.query(
+                'SELECT id FROM administrator WHERE username = ? AND id != ?',
+                [username, adminId]
+            );
+            if (existing.length > 0) {
+                return res.status(400).json({ error: 'Username already exists' });
+            }
+        }
+
+        // Update admin credentials
+        let updateQuery = 'UPDATE administrator SET username = ?, email = ?';
+        const updateParams = [username, email];
+
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updateQuery += ', admin_password = ?';
+            updateParams.push(hashedPassword);
+        }
+
+        updateQuery += ' WHERE id = ?';
+        updateParams.push(adminId);
+
+        await conn.query(updateQuery, updateParams);
+
+        // Log the credential change
+        await conn.query(`
+            INSERT INTO admin_credential_history 
+            (admin_id, changed_by, change_type, old_username, new_username, 
+             old_email, new_email, change_reason, changed_at)
+            VALUES (?, ?, 'credential_update', ?, ?, ?, ?, ?, NOW())
+        `, [
+            adminId,
+            directorId,
+            admin[0].username,
+            username,
+            admin[0].email,
+            email,
+            update_reason || 'No reason provided'
+        ]);
+
+        await conn.commit();
+
+        res.json({
+            success: true,
+            message: 'Administrator credentials updated successfully',
+            admin_id: adminId
+        });
+
+    } catch (error) {
+        await conn.rollback();
+        console.error('Error updating admin credentials:', error);
+        res.status(500).json({ error: 'Failed to update administrator credentials' });
+    } finally {
+        conn.release();
+    }
+});
+// Director-specific expulsion endpoint (simplified)
+app.post('/api/director/students/:id/expel', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const studentId = req.params.id;
+    const { reason, details, expulsion_date, isGraduation = false } = req.body;
+    const adminId = req.user.userId;
+
+    console.log(`Processing ${isGraduation ? 'graduation' : 'expulsion'} for student ID: ${studentId}`);
+
+    // Verify student exists and is not already graduated/expelled
+    const [student] = await conn.query(
+      'SELECT * FROM student WHERE id = ? AND student_class != "Graduated"',
+      [studentId]
+    );
+
+    if (student.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Student not found or already graduated/expelled' 
+      });
+    }
+
+    // SIMPLE: Just update student class to "Graduated"
+    await conn.query(
+      'UPDATE student SET student_class = "Graduated" WHERE id = ?',
+      [studentId]
+    );
+
+    // Log to console instead of database table
+    console.log(`✅ Student expelled: ${student[0].student_firstName} ${student[0].student_lastName} (ID: ${studentId}) - Reason: ${reason}`);
+
+    await conn.commit();
+
+    res.json({
+      success: true,
+      message: `Student ${isGraduation ? 'graduated' : 'expelled'} successfully`,
+      student: {
+        id: studentId,
+        name: `${student[0].student_firstName} ${student[0].student_lastName}`,
+        previous_class: student[0].student_class,
+        new_status: 'Graduated'
+      }
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('❌ Error expelling student:', error);
+    res.status(500).json({ 
+      success: false,
+      error: `Failed to expel student`,
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+// ====================== STUDENT EXPULSION/GRADUATION ENDPOINT ====================== //
+
+app.post('/api/students/:id/expel', authenticateToken, authorizeRole(['admin', 'director']), async (req, res) => {
+  const conn = await connection.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const studentId = req.params.id;
+    const { reason, details, expulsion_date, isGraduation = false } = req.body;
+    const adminId = req.user.userId;
+
+    console.log(`Processing ${isGraduation ? 'graduation' : 'expulsion'} for student ID: ${studentId}`);
+
+    // Verify student exists and is not already graduated/expelled
+    const [student] = await conn.query(
+      'SELECT * FROM student WHERE id = ? AND student_class != "Graduated"',
+      [studentId]
+    );
+
+    if (student.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Student not found or already graduated/expelled' 
+      });
+    }
+
+    // SIMPLE: Just update student class to "Graduated" (this removes them from active lists)
+    await conn.query(
+      'UPDATE student SET student_class = "Graduated" WHERE id = ?',
+      [studentId]
+    );
+
+    // NO HISTORY TABLE - Just log to console
+    console.log(`✅ Student ${studentId} (${student[0].student_firstName} ${student[0].student_lastName}) ${isGraduation ? 'graduated' : 'expelled'}. Reason: ${reason}, Details: ${details}`);
+
+    await conn.commit();
+
+    res.json({
+      success: true,
+      message: `Student ${isGraduation ? 'graduated' : 'expelled'} successfully`,
+      student: {
+        id: studentId,
+        name: `${student[0].student_firstName} ${student[0].student_lastName}`,
+        previous_class: student[0].student_class,
+        new_status: 'Graduated'
+      }
+    });
+
+  } catch (error) {
+    await conn.rollback();
+    console.error('❌ Error expelling/graduating student:', error);
+    res.status(500).json({ 
+      success: false,
+      error: `Failed to ${req.body.isGraduation ? 'graduate' : 'expel'} student`,
+      details: error.message 
+    });
+  } finally {
+    conn.release();
+  }
+});
+
 // ====================== HOME ROUTES ====================== //
 
 app.get('/', (req, res) => {
@@ -2789,16 +3355,58 @@ app.use((req, res) => {
   });
 });
 
+// Add this to your server.js to debug routes
+app.get('/api/debug/routes', (req, res) => {
+  const routes = [];
+  app._router.stack.forEach(middleware => {
+    if (middleware.route) {
+      routes.push({
+        path: middleware.route.path,
+        methods: Object.keys(middleware.route.methods)
+      });
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach(handler => {
+        if (handler.route) {
+          routes.push({
+            path: handler.route.path,
+            methods: Object.keys(handler.route.methods)
+          });
+        }
+      });
+    }
+  });
+  res.json({ routes });
+});
+
 // ====================== SERVER START ====================== //
 
-app.listen(5000, () => {
-  console.log('Server running on port 5000');
-  console.log('Main Application: http://localhost:5000');
-  console.log('Student Registration: http://localhost:5000/signup.html');
-  console.log('API Documentation:');
-  console.log('  - Authentication: POST /login, POST /verify-otp');
-  console.log('  - Student Registration: POST /register');
-  console.log('  - Student Search: GET /students/search?q=name');
-  console.log('  - Fault Management: POST /add-fault');
-  console.log('  - Reports: GET /reports/daily, /reports/weekly, etc.');
+// Helper function to get network IP
+function getNetworkIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const netInterface of interfaces[name]) {
+      if (netInterface.family === 'IPv4' && !netInterface.internal) {
+        return netInterface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
+const PORT = 5000;
+const HOST = '0.0.0.0'; // Listen on all network interfaces
+
+app.listen(PORT, HOST, () => {
+  const networkIP = getNetworkIP();
+  console.log('🚀 Server running successfully!');
+  console.log('📍 Local Access:');
+  console.log(`   http://localhost:${PORT}`);
+  console.log('📍 Mobile Access:');
+  console.log(`   http://${networkIP}:${PORT}`);
+  console.log('📍 Student Registration:');
+  console.log(`   http://${networkIP}:${PORT}/signup.html`);
+  console.log('📍 Network Test:');
+  console.log(`   http://${networkIP}:${PORT}/api/network-test`);
+  console.log('📱 Mobile debugging enabled');
+  console.log('🌐 CORS configured for all origins');
 });

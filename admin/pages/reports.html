@@ -748,7 +748,6 @@
                 <a href="permission.html"><i class="fas fa-clipboard-check"></i> Permission</a>
                 <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
                 <a href="faut-requests.html"><i class="fas fa-tasks"></i> Requests</a>
-                <a href="register-teacher.html"><i class="fas fa-user-plus"></i> Register Teacher</a>
             </nav>
 
             <div class="user-info">
@@ -998,7 +997,7 @@ async function generateReport(type) {
             throw new Error('No authentication token found');
         }
         
-        currentApiUrl = `http://localhost:5000/reports/${type}`;
+        currentApiUrl = `/reports/${type}`;
         currentReportParams = {};
         currentReportType = type;
         
@@ -1534,7 +1533,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1582,7 +1581,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1696,7 +1695,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1744,7 +1743,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1872,7 +1871,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -1920,7 +1919,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,

@@ -94,16 +94,17 @@ export const selectStudentByName = async (name) => {
 };
 
 // Function to fetch all students
-export const selectAllStudents = async () => {
+export async function selectAllStudents() {
   try {
-    const [rows] = await connection.query('SELECT * FROM student');
+    const [rows] = await connection.query(
+      `SELECT * FROM student WHERE student_class != 'Graduated' AND student_class != 'graduated' ORDER BY student_class, student_firstName, student_lastName`
+    );
     return rows;
-  } catch (error) {
-    console.error('Error fetching all students:', error);
-    throw error;
+  } catch (err) {
+    console.error('Database error in selectAllStudents:', err);
+    throw err;
   }
-};
-
+}
 // Search students across all name fields
 export const searchStudents = async (query) => {
   try {

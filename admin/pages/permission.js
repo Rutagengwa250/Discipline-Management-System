@@ -140,7 +140,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -188,7 +188,7 @@ function initSearch() {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(
-                `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                `/students/search?q=${encodeURIComponent(query)}`, 
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`,

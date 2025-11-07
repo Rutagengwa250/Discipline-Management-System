@@ -1114,7 +1114,6 @@
                     <a href="permission.html"><i class="fas fa-clipboard-check"></i> Permission</a>
                     <a href="reports.html"><i class="fas fa-chart-bar"></i> Reports</a>
                     <a href="faut-requests.html" class="active"><i class="fas fa-tasks"></i> Requests</a>
-                    <a href="register-teacher.html"><i class="fas fa-user-plus"></i> Register Teacher</a>
                 </nav>
 
                 <div class="user-info">
@@ -1394,7 +1393,7 @@
                 try {
                     const token = localStorage.getItem('token');
                     const response = await axios.get(
-                        `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                        `/students/search?q=${encodeURIComponent(query)}`, 
                         {
                             headers: {
                                 'Authorization': `Bearer ${token}`,
@@ -1442,7 +1441,7 @@
                 try {
                     const token = localStorage.getItem('token');
                     const response = await axios.get(
-                        `http://localhost:5000/students/search?q=${encodeURIComponent(query)}`, 
+                        `/students/search?q=${encodeURIComponent(query)}`, 
                         {
                             headers: {
                                 'Authorization': `Bearer ${token}`,
@@ -1544,7 +1543,7 @@
                 const endDate = document.getElementById('endDate').value;
                 
                 // Build query parameters
-                let url = `http://localhost:5000/api/removal-requests`;
+                let url = `/api/removal-requests`;
                 let params = [];
                 
                 // Add status filter if provided
@@ -1601,7 +1600,7 @@
                 
                 const detailPromises = requests.map(async (request) => {
                     try {
-                        const detailResponse = await axios.get(`http://localhost:5000/api/removal-requests/${request.id}`, {
+                        const detailResponse = await axios.get(`/api/removal-requests/${request.id}`, {
                             headers: { 
                                 'Authorization': `Bearer ${token}`,
                                 'Content-Type': 'application/json'
@@ -1692,7 +1691,7 @@
         async function showRequestDetails(requestId) {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get(`http://localhost:5000/api/removal-requests/${requestId}`, {
+                const response = await axios.get(`/api/removal-requests/${requestId}`, {
                     headers: { 
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -1767,7 +1766,7 @@
 
                 const token = localStorage.getItem('token');
                 const response = await axios.patch(
-                    `http://localhost:5000/api/removal-requests/${currentRequestId}/status`,
+                    `/api/removal-requests/${currentRequestId}/status`,
                     {
                         status: 'approved',
                         adminComment: document.getElementById('adminComment').value
@@ -1810,7 +1809,7 @@
 
                 const token = localStorage.getItem('token');
                 const response = await axios.patch(
-                    `http://localhost:5000/api/removal-requests/${currentRequestId}/status`,
+                    `/api/removal-requests/${currentRequestId}/status`,
                     {
                         status: 'rejected',
                         adminComment: document.getElementById('adminComment').value

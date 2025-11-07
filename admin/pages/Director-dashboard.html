@@ -39,12 +39,51 @@
             min-height: 100vh;
         }
 
+        /* Mobile Header */
+        .mobile-header {
+            display: none;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .mobile-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mobile-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mobile-logo h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .hamburger-menu {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+
         /* Sidebar Styles */
         .sidebar {
             background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
             padding: 2rem 0;
             box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
         }
 
         .logo {
@@ -107,7 +146,7 @@
 
         .header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
         }
@@ -165,7 +204,7 @@
 
         .stat-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
         }
@@ -199,34 +238,57 @@
             font-weight: 500;
         }
 
-      .chart-card {
-        position: relative;
-        min-height: 300px;
-    }
-    
-    .chart-card canvas {
-        max-width: 100%;
-        height: auto !important;
-    }
-    
-    /* Ensure proper chart container sizing */
-    #conductChart, #classChart {
-        width: 100% !important;
-        height: 250px !important;
-    }
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: relative;
+            min-height: 300px;
+        }
+
+        .chart-header {
+            margin-bottom: 1rem;
+        }
+
+        .chart-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .chart-card canvas {
+            max-width: 100%;
+            height: auto !important;
+        }
+
+        #conductChart, #classChart {
+            width: 100% !important;
+            height: 250px !important;
+        }
+
         /* Recent Activity */
         .activity-section {
             background: white;
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             overflow: hidden;
+            margin-bottom: 2rem;
         }
 
         .section-header {
             padding: 1.5rem;
             border-bottom: 1px solid var(--border);
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
         }
 
@@ -234,6 +296,32 @@
             font-size: 1.25rem;
             font-weight: 600;
             color: var(--dark);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-outline-primary {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary);
+            color: white;
         }
 
         .activity-list {
@@ -332,7 +420,21 @@
             }
             
             .sidebar {
-                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                width: 280px;
+                transform: translateX(-100%);
+                z-index: 99;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .mobile-header {
+                display: block;
             }
             
             .charts-grid {
@@ -354,6 +456,40 @@
                 gap: 1rem;
                 align-items: flex-start;
             }
+            
+            .quick-actions {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .activity-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .activity-time {
+                align-self: flex-end;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h2 {
+                font-size: 1.5rem;
+            }
+            
+            .stat-value {
+                font-size: 1.5rem;
+            }
+            
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.25rem;
+            }
         }
 
         /* Loading States */
@@ -372,12 +508,44 @@
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
+        
+        /* Overlay for mobile menu */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 98;
+            display: none;
+        }
+        
+        .overlay.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+        <div class="mobile-header-content">
+            <div class="mobile-logo">
+                <i class="fas fa-graduation-cap"></i>
+                <h1>DMS</h1>
+            </div>
+            <button class="hamburger-menu" id="hamburger-menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Overlay for mobile menu -->
+    <div class="overlay" id="overlay"></div>
+
     <div class="dashboard-container">
         <!-- Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="logo">
                 <h1><i class="fas fa-graduation-cap"></i>DMS</h1>
                 <p>Director Dashboard</p>
@@ -387,7 +555,7 @@
                 <li><a href="Director-students.html"><i class="fas fa-users"></i> Students</a></li>
                 <li><a href="Director.analytics.html"><i class="fas fa-chart-bar"></i> Analytics</a></li>
                 <li><a href="Director-report.html"><i class="fas fa-file-alt"></i> Reports</a></li>
-                <li><a href="Director-settings.html" ><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="Director-settings.html"><i class="fas fa-cog"></i> Settings</a></li>
                 <li><a href="register-teacher.html"><i class="fas fa-user-plus"></i> Register Teacher</a></li>
                 <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
             </ul>
@@ -490,9 +658,9 @@
 
             <!-- Quick Actions -->
             <div class="quick-actions">
-                <div class="action-btn">
+                <div class="action-btn" onclick="generateReport('summary')">
                     <i class="fas fa-chart-line"></i>
-                    <span> Report</span>
+                    <span>Generate Report</span>
                 </div>
                 <div class="action-btn" onclick="viewStudents()">
                     <i class="fas fa-user-graduate"></i>
@@ -515,19 +683,40 @@
     let currentUser = null;
     let conductChart = null;
     let classChart = null;
+    let chartsInitialized = false;
+    let chartUpdateInProgress = false;
 
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', function() {
         checkAuthentication();
         loadDashboardData();
         setupEventListeners();
+        setupMobileMenu();
     });
 
-    // Check if user is authenticated - FIXED VERSION
+    // Setup mobile menu functionality
+    function setupMobileMenu() {
+        const hamburgerMenu = document.getElementById('hamburger-menu');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        
+        if (hamburgerMenu && sidebar && overlay) {
+            hamburgerMenu.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active');
+            });
+            
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+        }
+    }
+
+    // Check if user is authenticated
     function checkAuthentication() {
         const token = localStorage.getItem('token');
         if (!token) {
-            console.log('No token found, redirecting to login');
             window.location.href = '/';
             return;
         }
@@ -539,11 +728,9 @@
                 document.getElementById('user-name').textContent = currentUser.username;
                 document.getElementById('user-avatar').textContent = currentUser.username.charAt(0).toUpperCase();
             } else {
-                console.log('No user data found');
                 logout();
             }
         } catch (error) {
-            console.error('Error parsing user data:', error);
             logout();
         }
     }
@@ -554,40 +741,41 @@
         document.getElementById('refresh-activity').addEventListener('click', loadRecentActivity);
     }
 
-    // Load dashboard data - FIXED
+    // Load dashboard data
+    let dashboardLoadTimeout = null;
     async function loadDashboardData() {
-        try {
-            const token = localStorage.getItem('token');
-            console.log('Loading dashboard data...');
-
-            const response = await fetch('/api/director/dashboard-stats', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.status === 401) {
-                console.log('Token expired, logging out');
-                logout();
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            console.log('Dashboard data loaded:', data);
-            
-            updateStats(data.overview);
-            createCharts(data.overview, data.classStats);
-            loadRecentActivity();
-            
-        } catch (error) {
-            console.error('Error loading dashboard:', error);
-            showError('Failed to load dashboard data: ' + error.message);
+        if (dashboardLoadTimeout) {
+            clearTimeout(dashboardLoadTimeout);
         }
+
+        dashboardLoadTimeout = setTimeout(async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/director/dashboard-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                updateStats(data.overview);
+                createCharts(data.overview, data.classStats);
+                loadRecentActivity();
+                
+            } catch (error) {
+                showError('Failed to load dashboard data: ' + error.message);
+            }
+        }, 100);
     }
 
     // Update statistics cards
@@ -598,34 +786,21 @@
         document.getElementById('pending-requests').textContent = stats.pendingRequests ? stats.pendingRequests.toLocaleString() : '0';
     }
 
-    // Create charts - FIXED VERSION
-    // Chart management variables
-    let chartsInitialized = false;
-    let chartUpdateInProgress = false;
-
-    // Create charts - FIXED with proper initialization check
+    // Create charts
     function createCharts(overview, classStats) {
-        // Prevent multiple simultaneous chart updates
-        if (chartUpdateInProgress) {
-            console.log('Chart update already in progress, skipping...');
-            return;
-        }
+        if (chartUpdateInProgress) return;
         
         chartUpdateInProgress = true;
-        console.log('Creating/updating charts with data:', { overview, classStats });
         
         const conductCtx = document.getElementById('conductChart');
         const classCtx = document.getElementById('classChart');
 
-        // Only destroy charts if they already exist and we need to recreate them
         if (conductChart && chartsInitialized) {
-            console.log('Destroying existing conduct chart');
             conductChart.destroy();
             conductChart = null;
         }
         
         if (classChart && chartsInitialized) {
-            console.log('Destroying existing class chart');
             classChart.destroy();
             classChart = null;
         }
@@ -665,27 +840,11 @@
                                         size: 12
                                     }
                                 }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        const value = context.parsed;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-                                        return `${label}: ${value} (${percentage}%)`;
-                                    }
-                                }
                             }
                         },
-                        cutout: '70%',
-                        animation: {
-                            duration: 1000,
-                            easing: 'easeOutQuart'
-                        }
+                        cutout: '70%'
                     }
                 });
-                console.log('Conduct chart created successfully');
             } catch (error) {
                 console.error('Error creating conduct chart:', error);
             }
@@ -720,33 +879,21 @@
                                 y: {
                                     beginAtZero: true,
                                     max: 40,
-                                    grid: {
-                                        drawBorder: false
-                                    },
                                     title: {
                                         display: true,
                                         text: 'Conduct Score'
                                     }
                                 },
                                 x: {
-                                    grid: {
-                                        display: false
-                                    },
                                     title: {
                                         display: true,
                                         text: 'Class'
                                     }
                                 }
-                            },
-                            animation: {
-                                duration: 1000,
-                                easing: 'easeOutQuart'
                             }
                         }
                     });
-                    console.log('Class chart created successfully');
                 } else {
-                    // Clear and show message if no class data
                     const ctx = classCtx.getContext('2d');
                     ctx.clearRect(0, 0, classCtx.width, classCtx.height);
                     ctx.font = '14px Inter, sans-serif';
@@ -763,77 +910,7 @@
         chartUpdateInProgress = false;
     }
 
-    // Load dashboard data - FIXED with debouncing
-    let dashboardLoadTimeout = null;
-    async function loadDashboardData() {
-        // Clear any pending timeout to prevent multiple rapid calls
-        if (dashboardLoadTimeout) {
-            clearTimeout(dashboardLoadTimeout);
-        }
-
-        // Use a timeout to debounce rapid calls
-        dashboardLoadTimeout = setTimeout(async () => {
-            try {
-                const token = localStorage.getItem('token');
-                console.log('Loading dashboard data...');
-
-                const response = await fetch('/api/director/dashboard-stats', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.status === 401) {
-                    console.log('Token expired, logging out');
-                    logout();
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                console.log('Dashboard data loaded:', data);
-                
-                updateStats(data.overview);
-                createCharts(data.overview, data.classStats);
-                loadRecentActivity();
-                
-            } catch (error) {
-                console.error('Error loading dashboard:', error);
-                showError('Failed to load dashboard data: ' + error.message);
-            }
-        }, 100); // 100ms debounce delay
-    }
-
-    // Update the DOMContentLoaded to prevent multiple initializations
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Director dashboard initializing...');
-        checkAuthentication();
-        
-        // Use a small delay to ensure DOM is fully ready
-        setTimeout(() => {
-            loadDashboardData();
-            setupEventListeners();
-        }, 100);
-    });
-
-    // Also add a resize handler that doesn't recreate charts unnecessarily
-    let resizeTimeout;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            if (conductChart) {
-                conductChart.resize();
-            }
-            if (classChart) {
-                classChart.resize();
-            }
-        }, 250);
-    });
-    // Load recent activity - FIXED
+    // Load recent activity
     async function loadRecentActivity() {
         try {
             const token = localStorage.getItem('token');
@@ -856,7 +933,6 @@
             const data = await response.json();
             displayRecentActivity(data);
         } catch (error) {
-            console.error('Error loading recent activity:', error);
             if (error.message.includes('401')) {
                 logout();
             } else {
@@ -872,7 +948,6 @@
         
         activityList.innerHTML = '';
 
-        // Check if we have data
         if (!data.recentFaults && !data.recentRequests) {
             activityList.innerHTML = `
                 <div class="activity-item">
@@ -885,24 +960,20 @@
             return;
         }
 
-        // Combine and sort activities by date
         const allActivities = [
             ...(data.recentFaults || []).map(fault => ({
                 type: 'fault',
                 title: `Fault Reported: ${fault.student_name || 'Unknown Student'}`,
                 details: `${fault.fault_description || 'No description'} - ${fault.points_deducted || 0} points`,
                 time: fault.formatted_date || new Date().toLocaleString(),
-                class: fault.student_class || 'Unknown',
-                reportedBy: fault.reported_by || 'Unknown'
+                class: fault.student_class || 'Unknown'
             })),
             ...(data.recentRequests || []).map(request => ({
                 type: request.status === 'approved' ? 'approved' : 'request',
                 title: `Removal Request: ${request.student_name || 'Unknown Student'}`,
                 details: `${request.reason || 'No reason'} - ${request.points_deducted || 0} points`,
                 time: request.formatted_date || new Date().toLocaleString(),
-                class: request.student_class || 'Unknown',
-                status: request.status,
-                requester: request.requester_name || 'Unknown'
+                class: request.student_class || 'Unknown'
             }))
         ].sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 10);
 
@@ -961,11 +1032,11 @@
     }
 
     function viewStudents() {
-        alert('Opening students page...');
+        window.location.href = 'Director-students.html';
     }
 
     function viewAnalytics() {
-        alert('Opening analytics...');
+        window.location.href = 'Director.analytics.html';
     }
 
     function manageTeachers() {
@@ -1001,26 +1072,15 @@
         }, 5000);
     }
 
-    function showSuccess(message) {
-        const successDiv = document.createElement('div');
-        successDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #4cc9f0;
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            z-index: 1000;
-        `;
-        successDiv.textContent = message;
-        document.body.appendChild(successDiv);
-
-        setTimeout(() => {
-            successDiv.remove();
-        }, 5000);
-    }
+    // Handle window resize
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (conductChart) conductChart.resize();
+            if (classChart) classChart.resize();
+        }, 250);
+    });
 </script>
 </body>
 </html>
