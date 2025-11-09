@@ -602,18 +602,38 @@
                             <div class="fault-inputs">
                                 <div>
                                     <label for="faultType">Fault Type</label>
-                                    <select id="faultType" required>
+                                   <select id="faultType" required>
                                         <option value="">Select a fault type</option>
+
+                                        <!-- 3 POINTS -->
                                         <option value="late">Late to Class</option>
                                         <option value="uniform">Uniform Violation</option>
                                         <option value="disruption">Class Disruption</option>
                                         <option value="homework">Missing Homework</option>
+
+                                        <!-- 5 POINTS -->
+                                        <option value="disobedience">Disobedience</option>
+                                        <option value="lying and dishonest">Lying & Dishonesty</option>
+
+                                        <!-- 10 POINTS -->
+                                        <option value="escaping from school">Escaping From School</option>
+                                        <option value="bringing disallowed food in the school">Bringing Disallowed Food</option>
+                                        <option value="business in school">Business in School</option>
+                                        <option value="use of electronic devices">Use of Electronic Devices</option>
+                                        <option value="unknown and disallowed objects like knife and others">Unknown / Dangerous Objects</option>
+                                        <option value="drugs and alcohol">Drugs & Alcohol</option>
+
+                                        <!-- 24 POINTS -->
+                                        <option value="cheating">Cheating</option>
+
+                                        <!-- CUSTOM -->
                                         <option value="other">Other</option>
                                     </select>
+
                                 </div>
                                 <div>
                                     <label for="pointsToRemove">Points to Remove</label>
-                                    <input type="number" id="pointsToRemove" name="pointsToRemove" min="1" max="20" required>
+                                    <input type="number" id="pointsToRemove" name="pointsToRemove" min="1" max="24" required>
                                 </div>
                             </div>
                         </div>
@@ -1008,28 +1028,41 @@
             window.location.href = '/login.html';
         }
 
-        function updatePointsValue(faultType, pointsElement) {
-            switch(faultType) {
-                case 'late':
-                    pointsElement.value = 2;
-                    break;
-                case 'uniform':
-                    pointsElement.value = 3;
-                    break;
-                case 'disruption':
-                    pointsElement.value = 4;
-                    break;
-                case 'homework':
-                    pointsElement.value = 2;
-                    break;
-                case 'other':
-                    pointsElement.value = '';
-                    pointsElement.focus();
-                    break;
-                default:
-                    pointsElement.value = '';
-            }
-        }
+function updatePointsValue(faultType, pointsElement) {
+    if (!faultType) {
+        pointsElement.value = "";
+        return;
+    }
+
+    const key = faultType.trim().toLowerCase();
+
+    const points = {
+        late: 3,
+        uniform: 3,
+        disruption: 3,
+        homework: 3,
+
+        disobedience: 5,
+        "lying and dishonest": 5,
+
+        "escaping from school": 10,
+        "bringing disallowed food in the school": 10,
+        "business in school": 10,
+        "use of electronic devices": 10,
+        "unknown and disallowed objects like knife and others": 10,
+        "drugs and alcohol": 10,
+
+        cheating: 24
+    };
+
+    if (key === "other") {
+        pointsElement.value = "";
+        pointsElement.focus();
+        return;
+    }
+
+    pointsElement.value = points[key] ?? "";
+}
 
         async function searchStudents() {
             const query = studentSearch.value.trim();
@@ -1315,7 +1348,7 @@
             if (!formData.faultType) errors.push('Please select a fault type');
             if (isNaN(formData.pointsToRemove)) errors.push('Invalid points value');
             if (formData.pointsToRemove <= 0) errors.push('Points must be positive');
-            if (formData.pointsToRemove > 20) errors.push('Cannot remove more than 20 points');
+            if (formData.pointsToRemove > 24) errors.push('Cannot remove more than 20 points');
             if (!formData.reason) errors.push('Reason is required');
             if (formData.reason.length < 5) errors.push('Reason too short (min 5 chars)');
             return errors;
