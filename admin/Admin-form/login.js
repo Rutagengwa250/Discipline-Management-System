@@ -152,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem('user', JSON.stringify(data.user));
         
         // Redirect based on role
-        let redirectPath = '/dashboard.html';
+        let redirectPath = '/profile-page.html';
         if (data.user.role === 'admin') {
             redirectPath = '/profile-page.html';
         } else if (data.user.role === 'teacher') {
