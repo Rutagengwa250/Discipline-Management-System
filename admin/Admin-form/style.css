@@ -84,6 +84,33 @@
             border-radius: 6px;
             font-size: 16px;
         }
+
+        .input-with-icon.password-field input {
+            padding-right: 46px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray);
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .password-toggle:hover {
+            background: transparent;
+            color: var(--primary);
+        }
         
         .form-group input:focus {
             outline: none;

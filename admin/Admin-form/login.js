@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnText = document.getElementById('btnText');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const messageDiv = document.getElementById('message');
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    const togglePasswordIcon = document.getElementById('togglePasswordIcon');
 
     // ==================== NETWORK UTILITY FUNCTIONS ====================
 
@@ -210,6 +212,17 @@ document.addEventListener('DOMContentLoaded', function() {
             setLoading(loginBtn, btnText, loadingSpinner, false);
         }
     });
+
+    // Password visibility toggle
+    if (togglePasswordBtn && togglePasswordIcon && passwordInput) {
+        togglePasswordBtn.addEventListener('click', () => {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            togglePasswordIcon.classList.toggle('fa-eye', !isHidden);
+            togglePasswordIcon.classList.toggle('fa-eye-slash', isHidden);
+            togglePasswordBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
+    }
 
     // Close modal when clicking outside (removed - no OTP modal)
     
