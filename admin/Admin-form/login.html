@@ -38,40 +38,6 @@
         </div>
     </div>
 
-    <!-- OTP Modal -->
-<!-- Add this to your login.html -->
-<div id="otpModal" class="modal">
-  <div class="modal-content">
-    <span class="close">&times;</span>
-    <h2>OTP Verification</h2>
-    <p>Enter the 6-digit code sent to your email</p>
-    
-    <form id="otpForm">
-      <div class="otp-container">
-        <input type="text" class="otp-input" maxlength="1" data-index="1" autofocus>
-        <input type="text" class="otp-input" maxlength="1" data-index="2">
-        <input type="text" class="otp-input" maxlength="1" data-index="3">
-        <input type="text" class="otp-input" maxlength="1" data-index="4">
-        <input type="text" class="otp-input" maxlength="1" data-index="5">
-        <input type="text" class="otp-input" maxlength="1" data-index="6">
-      </div>
-      
-      <div id="otpMessage" class="message"></div>
-      
-      <button type="submit" id="verifyOtpBtn">
-        <span id="otpBtnText">Verify</span>
-        <div id="otpLoadingSpinner" class="loading-spinner"></div>
-      </button>
-      
-      <div class="otp-footer">
-        Didn't receive code? 
-        <a id="resendOtp" class="resend-link">Resend OTP</a>
-        <span id="countdown" class="countdown"></span>
-      </div>
-    </form>
-  </div>
-</div>
-
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="login.js"></script>
 </body>

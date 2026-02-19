@@ -1,11 +1,10 @@
 {
   "scripts": {
-    "preinstall": "npm rebuild bcrypt --build-from-source",
     "start": "node admin/server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon admin/server.js"
   },
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "exceljs": "^4.4.0",

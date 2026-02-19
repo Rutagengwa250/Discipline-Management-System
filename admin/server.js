@@ -1,13 +1,11 @@
-import { createUser, getUserByUsername, selectAllStudents, connection, storeOTP, getOTPSecret, deleteOTP, createStudent, selectStudent } from './Admin-form/database.js';
+import { createUser, getUserByUsername, selectAllStudents, connection, createStudent, selectStudent } from './Admin-form/database.js';
 import express from 'express';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import pdfmake from 'pdfmake';
-import speakeasy from 'speakeasy';
-import { sendOTPEmail } from './emailService.js';
 import path from 'path';
 import cors from 'cors';
 import os from 'os';
@@ -164,122 +162,53 @@ const authorizeRole = (roles) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     
-    const isMobile = /mobile|android|iphone|ipad/i.test(req.headers['user-agent'] || '');
+    console.log('🔐 Login attempt:', { username });
     
-    if (isMobile) {
-      console.log('📱 Mobile Login attempt:', { 
-        username, 
-        password: password ? '***' : 'NULL',
-        ip: req.ip || req.connection.remoteAddress 
-      });
-    } else {
-      console.log('Login attempt:', { username, password: password ? '***' : 'NULL' });
-    }
-
     try {
         const user = await getUserByUsername(username);
         
-        if (isMobile) {
-          console.log('📱 User found in database:', { 
-            id: user?.id, 
-            username: user?.admin_name, 
-            role: user?.role_name 
-          });
-        } else {
-          console.log('User found in database:', user);
-        }
-        
         if (!user) {
-            console.log('User not found for username:', username);
+            console.log('❌ User not found:', username);
             return res.status(404).json({ error: 'User not found' });
         }
 
-        console.log('Comparing password...');
         const isPasswordValid = await bcrypt.compare(password, user.admin_password);
-        console.log('Password valid:', isPasswordValid);
         
         if (!isPasswordValid) {
+            console.log('❌ Invalid password for:', username);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        // For admin and director roles, require OTP
-        if (user.role_name === 'admin' || user.role_name === 'director') {
-            console.log('OTP required for role:', user.role_name);
-            
-            const secret = speakeasy.generateSecret({ length: 20 });
-            const otp = speakeasy.totp({
-                secret: secret.base32,
-                encoding: 'base32',
-                step: 300
-            });
-
-            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-            await storeOTP(user.id, secret.base32, expiresAt);
-
-            console.log('Generated OTP:', otp);
-            console.log('Sending OTP to:', user.email);
-
-            // ✅ FIX: ACTUALLY SEND THE OTP EMAIL
-            try {
-                await sendOTPEmail(user.email, otp);
-                console.log('✅ OTP email sent successfully to:', user.email);
-            } catch (emailError) {
-                console.error('❌ Failed to send OTP email:', emailError);
-                return res.status(500).json({ 
-                    error: 'Failed to send OTP email',
-                    debugOtp: otp // Return OTP for debugging
-                });
-            }
-
-            const tempToken = jwt.sign(
-                { 
-                    userId: user.id,
-                    username: user.admin_name,
-                    role: user.role_name,
-                    needsOTP: true
-                },
-                SECRET_KEY,
-                { expiresIn: '10m' }
-            );
-
-            return res.json({ 
-                message: 'OTP sent to email',
-                tempToken,
-                debugOtp: otp, // Remove in production
-                user: {
-                    id: user.id,
-                    username: user.admin_name,
-                    role: user.role_name
-                }
-            });
-        }
-
-        // For teachers, login directly
+        console.log('✅ Password valid for:', username);
+        
+        // Generate token directly for all users (no OTP required)
         const token = jwt.sign(
-            { 
-                userId: user.id,
-                username: user.admin_name,
-                role: user.role_name
-            },
-            SECRET_KEY,
-            { expiresIn: '8h' }
+          { 
+            userId: user.id,
+            username: user.admin_name,
+            role: user.role_name
+          },
+          SECRET_KEY,
+          { expiresIn: '8h' }
         );
 
-        console.log('Login successful for teacher:', user.admin_name);
-        
         return res.json({
-            token,
-            redirectUrl: getRedirectUrl(user.role_name),
-            user: {
-                id: user.id,
-                username: user.admin_name,
-                role: user.role_name
-            }
+          token,
+          redirectUrl: getRedirectUrl(user.role_name),
+          user: {
+            id: user.id,
+            username: user.admin_name,
+            role: user.role_name,
+            email: user.email
+          }
         });
 
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ error: 'Login failed: ' + error.message });
+        console.error('❌ Login error:', error);
+        res.status(500).json({ 
+            error: 'Login failed: ' + error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 
@@ -292,164 +221,7 @@ function getRedirectUrl(role) {
     }
 }
 
-app.post('/send-otp', authenticateToken, async (req, res) => {
-  try {
-    const user = req.user;
-    
-    const secret = speakeasy.generateSecret({ length: 20 });
-    const otp = speakeasy.totp({
-      secret: secret.base32,
-      encoding: 'base32',
-      step: 300
-    });
 
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    await storeOTP(user.userId, secret.base32, expiresAt);
-
-    await sendOTPEmail(user.email || 'rutjunior8@gmail.com', otp);
-
-    res.json({ 
-      message: 'OTP sent successfully',
-      expiresAt: expiresAt.toISOString()
-    });
-
-  } catch (error) {
-    console.error('Error sending OTP:', error);
-    res.status(500).json({ error: 'Failed to send OTP' });
-  }
-});
-
-app.post('/verify-otp', authenticateToken, async (req, res) => {
-  try {
-    const { otp } = req.body;
-    const user = req.user;
-
-    if (!otp || !/^\d{6}$/.test(otp)) {
-      return res.status(400).json({ error: 'Invalid OTP format' });
-    }
-
-    const otpData = await getOTPSecret(user.userId);
-    if (!otpData) {
-      return res.status(400).json({ error: 'No active OTP found' });
-    }
-
-    const isValid = speakeasy.totp.verify({
-      secret: otpData.otp_secret,
-      encoding: 'base32',
-      token: otp,
-      window: 1,
-      step: 300
-    });
-
-    if (!isValid) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-
-    const token = jwt.sign(
-      { 
-        userId: user.userId,
-        username: user.username,
-        role: user.role 
-      }, 
-      SECRET_KEY, 
-      { expiresIn: '8h' }
-    );
-
-    res.json({ 
-      token,
-      user: {
-        id: user.userId,
-        username: user.username,
-        role: user.role
-      },
-      redirectUrl: user.role === 'admin' ? '/admin-dashboard' : '/dashboard'
-    });
-
-  } catch (error) {
-    console.error('OTP verification error:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/debug-otp', authenticateToken, async (req, res) => {
-  try {
-    const user = req.user;
-    const otpData = await getOTPSecret(user.userId);
-    
-    if (!otpData) {
-      return res.status(400).json({ error: 'No active OTP found' });
-    }
-
-    const currentOtp = speakeasy.totp({
-      secret: otpData.otp_secret,
-      encoding: 'base32',
-      step: 300
-    });
-
-    res.json({
-      secret: otpData.otp_secret,
-      currentOtp,
-      time: new Date(),
-      expiresAt: otpData.expires_at
-    });
-
-  } catch (error) {
-    console.error('Debug OTP error:', error);
-    res.status(500).json({ error: 'Debug failed' });
-  }
-});
-
-app.post('/final-auth', authenticateToken, async (req, res) => {
-  try {
-    const { otp } = req.body;
-    const user = req.user;
-
-    if (!user.needsOTP) {
-      return res.status(400).json({ error: 'Invalid request' });
-    }
-
-    const otpData = await getOTPSecret(user.userId);
-    if (!otpData) {
-      return res.status(400).json({ error: 'OTP not found or expired' });
-    }
-
-    const isValid = speakeasy.totp.verify({
-      secret: otpData.otp_secret,
-      encoding: 'base32',
-      token: otp,
-      step: 300,
-      window: 1
-    });
-
-    if (!isValid) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-
-    await deleteOTP(user.userId);
-
-    const token = jwt.sign(
-      { 
-        userId: user.userId, 
-        username: user.username,
-        role: user.role
-      }, 
-      SECRET_KEY, 
-      { expiresIn: '8h' }
-    );
-
-    res.json({ 
-      token,
-      user: {
-        id: user.userId,
-        username: user.username,
-        role: user.role
-      }
-    });
-  } catch (error) {
-    console.error('Error in final auth:', error);
-    res.status(500).json({ error: 'Authentication failed' });
-  }
-});
 
 // ====================== STUDENT REGISTRATION ROUTES ====================== //
 
@@ -1918,14 +1690,20 @@ app.get('/api/director/dashboard-stats', authenticateToken, authorizeRole(['dire
       ORDER BY avg_conduct DESC
     `);
 
-    res.json({
-      overview: {
+    const overview = {
         totalStudents: totalStudents[0].total,
         totalTeachers: totalTeachers[0].total,
         totalFaults: totalFaults[0].total,
         pendingRequests: pendingRequests[0].total,
         ...conductStats[0]
-      },
+      };
+
+    // Backward compatible response shape:
+    // - New: stats.overview.totalStudents
+    // - Old dashboards: stats.totalStudents
+    res.json({
+      ...overview,
+      overview,
       classStats: classStats
     });
   } catch (error) {
@@ -3338,7 +3116,82 @@ app.post('/api/students/:id/expel', authenticateToken, authorizeRole(['admin', '
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, "Admin-form", 'login.html'));
 });
-
+// Add this route BEFORE the error handlers, near the other routes
+app.get('/otp/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    // Get OTP from your OTP storage (you need to implement this)
+    // For now, we'll show a simple page
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>DMS OTP Code</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          }
+          .otp-container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 500px;
+          }
+          .otp-code {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2196F3;
+            letter-spacing: 10px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            border: 2px dashed #2196F3;
+          }
+          .timer {
+            color: #ff9800;
+            font-size: 20px;
+            margin: 10px 0;
+          }
+          .note {
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="otp-container">
+          <h1>🔐 Your OTP Code</h1>
+          <p>Enter this code in the login form</p>
+          <div class="otp-code">Check server console</div>
+          <div class="timer">⏰ Valid for 5 minutes</div>
+          <p class="note">
+            The OTP code is displayed in the server console.<br>
+            Check your terminal where you ran "node server.js"
+          </p>
+          <p><a href="javascript:window.close()">Close this window</a></p>
+        </div>
+        <script>
+          // Auto-refresh every 30 seconds
+          setTimeout(() => location.reload(), 30000);
+        </script>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    res.send(`<h2>Error: ${error.message}</h2>`);
+  }
+});
 // ====================== ERROR HANDLING ====================== //
 
 app.use((err, req, res, next) => {
@@ -3393,7 +3246,7 @@ function getNetworkIP() {
   return 'localhost';
 }
 
-const PORT = 5000;
+const PORT = parseInt(process.env.PORT, 10) || 5000;
 const HOST = '0.0.0.0'; // Listen on all network interfaces
 
 app.listen(PORT, HOST, () => {
@@ -3410,3 +3263,4 @@ app.listen(PORT, HOST, () => {
   console.log('📱 Mobile debugging enabled');
   console.log('🌐 CORS configured for all origins');
 });
+

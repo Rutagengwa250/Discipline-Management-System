@@ -1,14 +1,17 @@
 import mysql from 'mysql2';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const connection = mysql.createPool({
-  host: process.env.mysql_host,
-  user: process.env.mysql_user,
-  password: process.env.mysql_password,
-  database: process.env.mysql_database,
+  host: process.env.MYSQL_HOST || 'localhost',
+  port: parseInt(process.env.MYSQL_PORT, 10) || 3306,
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || 'resetpassword',
+  database: process.env.MYSQL_DATABASE || 'students',
+  // TiDB Cloud (and many hosted MySQL providers) require TLS.
+  ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: true } : undefined,
 }).promise();
 
 // ====================== USER MANAGEMENT FUNCTIONS ====================== //
@@ -282,59 +285,6 @@ export const updateRemovalRequest = async (requestId, status, resolvedBy) => {
     }
   } catch (error) {
     console.error('Error updating removal request:', error);
-    throw error;
-  }
-};
-
-// ====================== OTP MANAGEMENT FUNCTIONS ====================== //
-
-export async function storeOTP(userId, secret, expiresAt) {
-  const expiresAtFormatted = expiresAt.toISOString().slice(0, 19).replace('T', ' ');
-  
-  try {
-    await connection.query(
-      'INSERT IGNORE INTO users (user_id) VALUES (?)',
-      [userId]
-    );
-
-    await connection.query(
-      'DELETE FROM user_otps WHERE user_id = ?',
-      [userId]
-    );
-    
-    await connection.query(
-      'INSERT INTO user_otps (user_id, otp_secret, expires_at) VALUES (?, ?, ?)',
-      [userId, secret, expiresAtFormatted]
-    );
-    
-    console.log(`Stored OTP for user ${userId}`);
-  } catch (error) {
-    console.error('Error storing OTP:', error);
-    throw error;
-  }
-}
-
-export const getOTPSecret = async (userId) => {
-  try {
-    const [rows] = await connection.query(
-      `SELECT otp_secret, expires_at FROM user_otps WHERE user_id = ?`,
-      [userId]
-    );
-    return rows[0];
-  } catch (error) {
-    console.error('Error fetching OTP secret:', error);
-    throw error;
-  }
-};
-
-export const deleteOTP = async (userId) => {
-  try {
-    await connection.query(
-      `DELETE FROM user_otps WHERE user_id = ?`,
-      [userId]
-    );
-  } catch (error) {
-    console.error('Error deleting OTP:', error);
     throw error;
   }
 };

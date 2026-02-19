@@ -1,0 +1,11 @@
+node_modules/
+.env
+.DS_Store
+Thumbs.db
+*.log
+OneDrive/
+forms/
+ply/
+teacher/
+coverage/
+dist/

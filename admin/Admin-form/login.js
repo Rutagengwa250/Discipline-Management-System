@@ -7,21 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnText = document.getElementById('btnText');
     const loadingSpinner = document.getElementById('loadingSpinner');
     const messageDiv = document.getElementById('message');
-    
-    // OTP Elements
-    const otpModal = document.getElementById('otpModal');
-    const otpForm = document.getElementById('otpForm');
-    const otpInputs = document.querySelectorAll('.otp-input');
-    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
-    const otpBtnText = document.getElementById('otpBtnText');
-    const otpLoadingSpinner = document.getElementById('otpLoadingSpinner');
-    const otpMessage = document.getElementById('otpMessage');
-    const resendOtpLink = document.getElementById('resendOtp');
-    const countdownElement = document.getElementById('countdown');
-    
-    let tempToken = null;
-    let countdownInterval = null;
-    let countdownTime = 60;
 
     // ==================== NETWORK UTILITY FUNCTIONS ====================
 
@@ -124,97 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ==================== OTP UTILITY FUNCTIONS ====================
-
-    // Initialize OTP inputs
-    function initOTPInputs() {
-        otpInputs.forEach((input, index) => {
-            // Handle input
-            input.addEventListener('input', (e) => {
-                const value = e.target.value;
-                // Only allow numbers
-                if (!/^\d*$/.test(value)) {
-                    input.value = value.replace(/\D/g, '');
-                    return;
-                }
-                
-                if (input.value.length === 1 && index < 5) {
-                    otpInputs[index + 1].focus();
-                }
-                // Auto-submit when last digit is entered
-                if (index === 5 && input.value.length === 1) {
-                    setTimeout(() => otpForm.dispatchEvent(new Event('submit')), 100);
-                }
-            });
-            
-            // Handle backspace
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
-                    otpInputs[index - 1].focus();
-                }
-            });
-            
-            // Handle paste
-            input.addEventListener('paste', (e) => {
-                e.preventDefault();
-                const pasteData = e.clipboardData.getData('text').trim();
-                if (/^\d{6}$/.test(pasteData)) {
-                    otpInputs.forEach((input, i) => {
-                        input.value = pasteData[i] || '';
-                    });
-                    otpInputs[5].focus();
-                }
-            });
-        });
-    }
-
-    // Start countdown timer (10 minutes)
-    function startCountdown() {
-        clearInterval(countdownInterval);
-        countdownTime = 600; // 10 minutes in seconds
-        updateCountdown();
-        resendOtpLink.classList.add('disabled');
-        resendOtpLink.style.pointerEvents = 'none';
-        
-        countdownInterval = setInterval(() => {
-            countdownTime--;
-            updateCountdown();
-            
-            if (countdownTime <= 0) {
-                clearInterval(countdownInterval);
-                resendOtpLink.classList.remove('disabled');
-                resendOtpLink.style.pointerEvents = 'auto';
-                countdownElement.textContent = '';
-            }
-        }, 1000);
-    }
-
-    // Update countdown display
-    function updateCountdown() {
-        const minutes = Math.floor(countdownTime / 60);
-        const seconds = countdownTime % 60;
-        countdownElement.textContent = `(${minutes}:${seconds < 10 ? '0' : ''}${seconds})`;
-    }
-
-    // Get full OTP code
-    function getOTP() {
-        return Array.from(otpInputs).map(input => input.value).join('');
-    }
-
-    // Reset OTP inputs
-    function resetOTPInputs() {
-        otpInputs.forEach(input => {
-            input.value = '';
-        });
-        otpInputs[0].focus();
-    }
-
-    // Show OTP modal
-    function showOTPModal() {
-        resetOTPInputs();
-        startCountdown();
-        otpModal.style.display = 'flex';
-        otpInputs[0].focus();
-    }
+    // (OTP verification removed)
 
     // Set loading state
     function setLoading(element, textElement, spinner, isLoading) {
@@ -249,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 8000); // Longer timeout for mobile users to read
     }
 
-    // Complete login process
+    // Complete login process - no OTP verification needed
     function completeLogin(data) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -273,29 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = redirectPath; // Use relative path for same origin
     }
 
-    // OTP verification function
-    async function verifyOTP(otp) {
-        try {
-            const data = await mobileFetch('/verify-otp', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${tempToken}`
-                },
-                body: JSON.stringify({ otp })
-            });
-
-            return data;
-            
-        } catch (error) {
-            console.error('OTP Verification Error:', error);
-            throw error;
-        }
-    }
-
     // ==================== EVENT LISTENERS ====================
-
-    // Initialize OTP inputs
-    initOTPInputs();
 
     // Login form submission
     loginForm.addEventListener('submit', async (e) => {
@@ -320,27 +193,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             console.log('✅ Login response received:', data);
             
-            if (data.tempToken) {
-                // OTP required for admin/director
-                tempToken = data.tempToken;
-                showOTPModal();
-                
-                // Debug log - show OTP in console for testing
-                if (data.debugOtp) {
-                    console.log('🔐 DEBUG OTP (for testing):', data.debugOtp);
-                    // Optional: Auto-fill for testing (remove in production)
-                    // setTimeout(() => {
-                    //     otpInputs.forEach((input, index) => {
-                    //         input.value = data.debugOtp[index];
-                    //     });
-                    // }, 1000);
-                }
-                
-                showMessage(messageDiv, 'OTP sent to your email. Please check your inbox.', 'success');
-            } else {
-                // Regular users get token directly
-                completeLogin(data);
-            }
+            // Direct login - no OTP required
+            completeLogin(data);
+            
         } catch (error) {
             console.error('❌ Login error:', error);
             
@@ -356,73 +211,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // OTP form submit handler
-    otpForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const otp = getOTP();
-        
-        if (otp.length !== 6) {
-            showMessage(otpMessage, 'Please enter a complete 6-digit code', 'error');
-            return;
-        }
-
-        setLoading(verifyOtpBtn, otpBtnText, otpLoadingSpinner, true);
-        
-        try {
-            console.log('📱 Verifying OTP...');
-            const result = await verifyOTP(otp);
-            console.log('✅ OTP verification successful');
-            completeLogin(result);
-        } catch (error) {
-            console.error('❌ OTP verification failed:', error);
-            showMessage(otpMessage, error.message, 'error');
-            
-            // Reset inputs only for certain errors
-            if (error.message.includes('expired') || error.message.includes('Invalid')) {
-                resetOTPInputs();
-            }
-        } finally {
-            setLoading(verifyOtpBtn, otpBtnText, otpLoadingSpinner, false);
-        }
-    });
-
-    // Resend OTP
-    resendOtpLink.addEventListener('click', async (e) => {
-        e.preventDefault();
-        
-        if (resendOtpLink.classList.contains('disabled')) return;
-        
-        setLoading(verifyOtpBtn, otpBtnText, otpLoadingSpinner, true);
-        
-        try {
-            console.log('📱 Resending OTP...');
-            await mobileFetch('/send-otp', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${tempToken}`
-                }
-            });
-
-            showMessage(otpMessage, 'New OTP sent successfully!', 'success');
-            resetOTPInputs();
-            startCountdown();
-            
-        } catch (error) {
-            console.error('❌ Resend OTP failed:', error);
-            let errorMsg = 'Failed to resend OTP. Please try again.';
-            showMessage(otpMessage, errorMsg, 'error');
-        } finally {
-            setLoading(verifyOtpBtn, otpBtnText, otpLoadingSpinner, false);
-        }
-    });
-
-    // Close modal when clicking outside
-    otpModal.addEventListener('click', (e) => {
-        if (e.target === otpModal) {
-            otpModal.style.display = 'none';
-        }
-    });
-
+    // Close modal when clicking outside (removed - no OTP modal)
+    
     // ==================== INITIALIZATION ====================
 
     // Test connectivity on page load
