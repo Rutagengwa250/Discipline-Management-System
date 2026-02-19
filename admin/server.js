@@ -217,7 +217,7 @@ function getRedirectUrl(role) {
         case 'teacher': return '/teacher-dashboard.html';
         case 'director': return '/director-dashboard.html';
         case 'admin': return '/profile-page.html';
-        default: return '/dashboard.html';
+        default: return '/profile-page.html';
     }
 }
 
@@ -1135,38 +1135,44 @@ app.get('/api/permissions', authenticateToken, async (req, res) => {
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
 
-    let query = `
-      SELECT SQL_CALC_FOUND_ROWS 
-        p.*, 
-        CONCAT(p.student_name, ' (', p.student_class, ')') as student_info
-      FROM permissions p 
-      WHERE 1=1
-    `;
-    const params = [];
+    let whereClause = ' WHERE 1=1';
+    const filterParams = [];
 
     if (filter === 'active') {
-      query += ' AND p.status = "approved" AND p.return_time > NOW()';
+      whereClause += ' AND p.status = "approved" AND p.return_time > NOW()';
     } else if (filter !== 'all') {
-      query += ' AND p.status = ?';
-      params.push(filter);
+      whereClause += ' AND p.status = ?';
+      filterParams.push(filter);
     }
 
     if (studentName) {
-      query += ' AND p.student_name LIKE ?';
-      params.push(`%${studentName}%`);
+      whereClause += ' AND p.student_name LIKE ?';
+      filterParams.push(`%${studentName}%`);
     }
 
     if (startDate && endDate) {
-      query += ' AND DATE(p.departure_time) BETWEEN ? AND ?';
-      params.push(startDate, endDate);
+      whereClause += ' AND DATE(p.departure_time) BETWEEN ? AND ?';
+      filterParams.push(startDate, endDate);
     }
 
-    query += ' ORDER BY p.departure_time DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    const dataQuery = `
+      SELECT 
+        p.*, 
+        CONCAT(p.student_name, ' (', p.student_class, ')') as student_info
+      FROM permissions p
+      ${whereClause}
+      ORDER BY p.departure_time DESC
+      LIMIT ? OFFSET ?
+    `;
+    const dataParams = [...filterParams, limit, offset];
 
-    const [permissions] = await connection.query(query, params);
-    
-    const [[{ total }]] = await connection.query('SELECT FOUND_ROWS() as total');
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM permissions p
+      ${whereClause}
+    `;
+    const [permissions] = await connection.query(dataQuery, dataParams);
+    const [[{ total }]] = await connection.query(countQuery, filterParams);
     
     res.json({
       success: true,
@@ -2004,7 +2010,12 @@ app.get('/api/director/students/:id', authenticateToken, authorizeRole(['directo
 // ====================== SERVE DIRECTOR DASHBOARD ====================== //
 
 app.get('/director-dashboard.html', (req, res) => {
-  res.sendFile(join(__dirname, 'public', 'director-dashboard.html'));
+  res.sendFile(join(__dirname, 'pages', 'Director-dashboard.html'));
+});
+
+// Backward-compatible fallback for older clients that still request /dashboard.html
+app.get('/dashboard.html', (req, res) => {
+  res.sendFile(join(__dirname, 'pages', 'profile-page.html'));
 });
 
 // ===== SYSTEM SETTINGS & BACKUP ENDPOINTS =====
@@ -2917,80 +2928,6 @@ app.get('/api/director/admins/:id', authenticateToken, authorizeRole(['director'
     }
 });
 
-// Update admin credentials
-app.put('/api/director/admins/:id/credentials', authenticateToken, authorizeRole(['director']), async (req, res) => {
-    const conn = await connection.getConnection();
-    try {
-        await conn.beginTransaction();
-
-        const adminId = req.params.id;
-        const { username, email, password, update_reason } = req.body;
-        const directorId = req.user.userId;
-
-        // Verify admin exists
-        const [admin] = await conn.query('SELECT * FROM administrator WHERE id = ?', [adminId]);
-        if (admin.length === 0) {
-            return res.status(404).json({ error: 'Administrator not found' });
-        }
-
-        // Check if username already exists (excluding current admin)
-        if (username !== admin[0].username) {
-            const [existing] = await conn.query(
-                'SELECT id FROM administrator WHERE username = ? AND id != ?',
-                [username, adminId]
-            );
-            if (existing.length > 0) {
-                return res.status(400).json({ error: 'Username already exists' });
-            }
-        }
-
-        // Update admin credentials
-        let updateQuery = 'UPDATE administrator SET username = ?, email = ?';
-        const updateParams = [username, email];
-
-        if (password) {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            updateQuery += ', admin_password = ?';
-            updateParams.push(hashedPassword);
-        }
-
-        updateQuery += ' WHERE id = ?';
-        updateParams.push(adminId);
-
-        await conn.query(updateQuery, updateParams);
-
-        // Log the credential change
-        await conn.query(`
-            INSERT INTO admin_credential_history 
-            (admin_id, changed_by, change_type, old_username, new_username, 
-             old_email, new_email, change_reason, changed_at)
-            VALUES (?, ?, 'credential_update', ?, ?, ?, ?, ?, NOW())
-        `, [
-            adminId,
-            directorId,
-            admin[0].username,
-            username,
-            admin[0].email,
-            email,
-            update_reason || 'No reason provided'
-        ]);
-
-        await conn.commit();
-
-        res.json({
-            success: true,
-            message: 'Administrator credentials updated successfully',
-            admin_id: adminId
-        });
-
-    } catch (error) {
-        await conn.rollback();
-        console.error('Error updating admin credentials:', error);
-        res.status(500).json({ error: 'Failed to update administrator credentials' });
-    } finally {
-        conn.release();
-    }
-});
 // Director-specific expulsion endpoint (simplified)
 app.post('/api/director/students/:id/expel', authenticateToken, authorizeRole(['director', 'admin']), async (req, res) => {
   const conn = await connection.getConnection();
